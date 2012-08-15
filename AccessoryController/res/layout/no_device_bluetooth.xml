@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="fill_parent"
+    android:layout_gravity="fill_horizontal"
+    android:layout_weight="1"
+    android:background="@drawable/background_holo_dark"
+    android:orientation="vertical" >
+
+    <TextView
+        style="@style/DemoKitNoDevice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="@string/no_device_bluetooth" />
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="@string/button_connect"
+        android:onClick="onConnectClick" />
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="fill_vertical"
+        android:layout_weight="1"
+        android:src="@drawable/demokit_splash" />
+
+</LinearLayout>

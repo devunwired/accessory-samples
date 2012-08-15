@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">AccessoryController</string>
+	<string name="no_device">Please connect a USB AccessoryController.</string>
+  <string name="no_device_bluetooth">Tap to connect with an AccessoryController.</string>
+  <string name="button_connect">Tap Here To Connect</string>
+	<string name="off">Off</string>
+	<string name="on">On</string>
+</resources>
