@@ -1,0 +1,9 @@
+#OSX Noise
+.DS_Store
+
+#Build output
+bin/
+gen/
+
+#Ant config files
+local.properties
