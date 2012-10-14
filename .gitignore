@@ -5,5 +5,11 @@
 bin/
 gen/
 
+#Project Files
+.idea/
+*.iml
+.classpath
+.project
+
 #Ant config files
 local.properties
