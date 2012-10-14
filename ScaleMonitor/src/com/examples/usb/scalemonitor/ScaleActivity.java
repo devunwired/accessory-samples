@@ -9,8 +9,6 @@
 
 package com.examples.usb.scalemonitor;
 
-import java.nio.ByteBuffer;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -30,6 +28,8 @@ import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.nio.ByteBuffer;
 
 public class ScaleActivity extends Activity implements Runnable {
 
@@ -255,6 +255,29 @@ public class ScaleActivity extends Activity implements Runnable {
 
     public void postWeightData(byte[] data) {
         mHandler.sendMessage(Message.obtain(mHandler, MSG_DATA, data));
+    }
+
+    private void getStatusReport(UsbDeviceConnection connection) {
+        int requestType = 0xA1; // 1010 0001b
+        int request = 0x01; //HID GET_REPORT
+        int value = 0x0101; //Input report, ID = 1
+        int index = 0; //Interface 0
+        int length = 3;
+
+        byte[] buffer = new byte[length];
+        connection.controlTransfer(requestType, request, value, index, buffer, length, 2000);
+    }
+
+    private void setZeroScale(UsbDeviceConnection connection) {
+        int requestType = 0x21; // 0010 0001b
+        int request = 0x09; //HID SET_REPORT
+        int value = 0x0302; //Feature report, ID = 2
+        int index = 0; //Interface 0
+        int length = 2;
+
+        byte[] buffer = new byte[length];
+        //TODO: Fill buffer with control data
+        connection.controlTransfer(requestType, request, value, index, buffer, length, 2000);
     }
 
     /*
