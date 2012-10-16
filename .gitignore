@@ -4,6 +4,7 @@
 #Build output
 bin/
 gen/
+out/
 
 #Project Files
 .idea/

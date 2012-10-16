@@ -10,8 +10,11 @@
 package com.examples.usb.scalemonitor;
 
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
@@ -26,22 +29,32 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 
 public class ScaleActivity extends Activity implements Runnable {
 
     private static final String TAG = "ScaleMonitor";
 
+    // Dymo USB VID/PID values
+    // These are the same as the XML filter
+    private static final int VID = 24726;
+    private static final int PID = 344;
+
     private TextView mWeight, mStatus;
     private WakeLock mWakeLock;
+    private PendingIntent mPermissionIntent;
     
     private UsbManager mUsbManager;
     private UsbDevice mDevice;
     private UsbDeviceConnection mConnection;
     private UsbEndpoint mEndpointIntr;
+
+    private boolean mRunning = false;
 
     // USB HIS POS Constants
     private static final int UNITS_MILLIGRAM = 0x01;
@@ -75,37 +88,111 @@ public class ScaleActivity extends Activity implements Runnable {
         mStatus = (TextView) findViewById(R.id.text_status);
 
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+        //Create the intent to fire with permission results
+        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        /* Check if this was launched from a device attached intent, and
+         * obtain the device instance if it was.  We do this in onStart()
+         * because permissions dialogs may pop up as a result, which will
+         * cause an infinite loop in onResume().
+         */
+        UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+        if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+            setDevice(device);
+        } else {
+            searchForDevice();
+        }
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
+    public void onStart() {
+        super.onStart();
 
         //Obtain a WakeLock so the screen is on while using the application
         final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, TAG);
         mWakeLock.acquire();
-        
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        //Check if this was launched from a device attached intent, and
-        //obtain the device instance if it was
-        UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-        if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-            setDevice(device);
-        } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-            if (mDevice != null && mDevice.equals(device)) {
-                setDevice(null);
-            }
-        }
+
+        //Register receiver for further events
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        registerReceiver(mUsbReceiver, filter);
     }
     
     @Override
-    protected void onPause() {
-        super.onPause();
+    protected void onStop() {
+        super.onStop();
         if(mWakeLock != null) mWakeLock.release();
+        unregisterReceiver(mUsbReceiver);
+        mRunning = false;
     }
-    
+
+    private void searchForDevice() {
+        //If we find our device already attached, connect to it
+        HashMap<String, UsbDevice> devices = mUsbManager.getDeviceList();
+        UsbDevice selected = null;
+        for (UsbDevice device : devices.values()) {
+            if (device.getVendorId() == VID && device.getProductId() == PID) {
+                selected = device;
+                break;
+            }
+        }
+        //Request a connection
+        if (selected != null) {
+            if (mUsbManager.hasPermission(selected)) {
+                setDevice(selected);
+            } else {
+                mUsbManager.requestPermission(selected, mPermissionIntent);
+            }
+        }
+    }
+
+    private static final String ACTION_USB_PERMISSION = "com.examples.usb.scalemonitor.USB_PERMISSION";
+    private BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            //If our device is detached, disconnect
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                Log.i(TAG, "Device Detached");
+                if (mDevice != null && mDevice.equals(device)) {
+                    setDevice(null);
+                }
+            }
+            //If a new device is attached, connect to it
+            if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                Log.i(TAG, "Device Attached");
+                mUsbManager.requestPermission(device, mPermissionIntent);
+            }
+            //If this is our permission request, check result
+            if (ACTION_USB_PERMISSION.equals(action)) {
+                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+                        && device != null) {
+                    //Connect to the device
+                    setDevice(device);
+                } else {
+                    Log.d(TAG, "permission denied for device " + device);
+                    setDevice(null);
+                }
+            }
+        }
+    };
+
+    public void onStatusClick(View view) {
+        if (mConnection != null) {
+            getStatusReport(mConnection);
+        }
+    }
+
+    public void onZeroClick(View view) {
+
+    }
+
     /*
      * Methods to update the UI with the weight value read
      * from the USB scale.
@@ -192,12 +279,17 @@ public class ScaleActivity extends Activity implements Runnable {
                 //Start the polling thread
                 Toast.makeText(this, "open SUCCESS", Toast.LENGTH_SHORT).show();
                 mConnection = connection;
+                mRunning = true;
                 Thread thread = new Thread(null, this, "ScaleMonitor");
                 thread.start();
             } else {
                 Toast.makeText(this, "open FAIL", Toast.LENGTH_SHORT).show();
                 mConnection = null;
+                mRunning = false;
             }
+        } else {
+            mConnection = null;
+            mRunning = false;
         }
     }
 
@@ -214,33 +306,32 @@ public class ScaleActivity extends Activity implements Runnable {
                 break;
             case MSG_DATA:
                 byte[] data = (byte[]) msg.obj;
-                //Always 0x03 for a data report
+                //This value will always be 0x03 for the data report
                 byte reportId = data[0];
-
                 //Maps to a status constant defined for HID POS
                 byte status = data[1];
                 setWeightColor(status);
-                
+
                 //Maps to a units constant defined for HID POS
                 int units = (data[2] & 0xFF);
 
                 //Scaling applied to the weight value, if any
                 byte scaling = data[3];
-                
+
                 //Two byte value representing the weight itself
                 int weight = (data[5] & 0xFF) << 8;
                 weight += (data[4] & 0xFF);
 
                 switch (units) {
-                case UNITS_GRAM:
-                    updateWeightGrams(weight);
-                    break;
-                case UNITS_OUNCE:
-                    updateWeightPounds(weight);
-                    break;
-                default:
-                    mWeight.setText("---");
-                    break;
+                    case UNITS_GRAM:
+                        updateWeightGrams(weight);
+                        break;
+                    case UNITS_OUNCE:
+                        updateWeightPounds(weight);
+                        break;
+                    default:
+                        mWeight.setText("---");
+                        break;
                 }
                 break;
             default:
@@ -260,12 +351,13 @@ public class ScaleActivity extends Activity implements Runnable {
     private void getStatusReport(UsbDeviceConnection connection) {
         int requestType = 0xA1; // 1010 0001b
         int request = 0x01; //HID GET_REPORT
-        int value = 0x0101; //Input report, ID = 1
+        int value = 0x0305; //Input report, ID = 5
         int index = 0; //Interface 0
-        int length = 3;
+        int length = 5;
 
         byte[] buffer = new byte[length];
         connection.controlTransfer(requestType, request, value, index, buffer, length, 2000);
+        Toast.makeText(this, "Report: "+buffer[0]+", "+buffer[1]+", "+buffer[2]+", "+buffer[3]+", "+buffer[4], Toast.LENGTH_SHORT).show();
     }
 
     private void setZeroScale(UsbDeviceConnection connection) {
@@ -290,7 +382,7 @@ public class ScaleActivity extends Activity implements Runnable {
         ByteBuffer buffer = ByteBuffer.allocate(8);
         UsbRequest request = new UsbRequest();
         request.initialize(mConnection, mEndpointIntr);
-        while (true) {
+        while (mRunning) {
             // queue a request on the interrupt endpoint
             request.queue(buffer, 8);
             // wait for new data
@@ -309,7 +401,7 @@ public class ScaleActivity extends Activity implements Runnable {
                 postWeightData(raw);
 
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                 }
             } else {
