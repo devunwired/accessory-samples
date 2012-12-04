@@ -1,0 +1,22 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+    <Button
+        android:id="@+id/button_connect"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Connect"
+        android:onClick="onConnectClick" />
+    <TextView
+        android:id="@+id/text_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="22dp"/>
+    <TextView
+        android:id="@+id/text_data"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="22dp"/>
+
+</LinearLayout>
