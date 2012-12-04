@@ -6,13 +6,9 @@
 
 package com.examples.accessory.controller;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Method;
-
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
@@ -26,15 +22,26 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Method;
+import java.util.UUID;
+
 public class MainBluetoothActivity extends GameActivity implements Runnable {
 
     //Friendly name of the Bluetooth device we are looking to connect with
-    private static final String CONTROLLER_NAME = "itead";
+    private static final String CONTROLLER_NAME = "adccontroller";
+    private static final int CONTROLLER_CLASS = BluetoothClass.Device.TOY_CONTROLLER;
+    //RFCOMM Service UUID on our device
+    private static final UUID BT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private static final int MESSAGE_SWITCH = 1;
     private static final int MESSAGE_TEMPERATURE = 2;
     private static final int MESSAGE_LIGHT = 3;
     private static final int MESSAGE_JOY = 4;
+    private static final int MESSAGE_VIBE = 5;
     private static final int MESSAGE_CONNECTED = 100;
     private static final int MESSAGE_CONNECTFAIL = 101;
     
@@ -61,6 +68,15 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
     @Override
     protected boolean isControllerConnected() {
         return (mSocket != null);
+    }
+
+    @Override
+    protected void sendVibeControl(boolean longDuration) {
+        byte[] command = {0x02,
+                longDuration ? (byte)0x64 : (byte)0x32,
+                0x00};
+        Message msg = Message.obtain(null, MESSAGE_VIBE, command);
+        mHandler.sendMessage(msg);
     }
 
     @Override
@@ -103,7 +119,9 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
         public void onReceive(Context context, Intent intent) {
             if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if (CONTROLLER_NAME.equals(device.getName())) {
+                Log.d("AccessoryController", "Device Found: "+device.getName());
+                if (CONTROLLER_NAME.equals(device.getName())
+                        && CONTROLLER_CLASS == device.getBluetoothClass().getDeviceClass()) {
                     // We found our controller
                     mControllerDevice = device;
                     mConnectThread.start();
@@ -139,11 +157,9 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
      */
     private Thread mConnectThread = new Thread() {
         public void run() {
-            ParcelUuid[] uuids = servicesFromDevice(mControllerDevice);
             try {
                 //Create a socket to the RFCOMM service
-                //BT Modem only has one service to publish, so it is the first UUID
-                mSocket = mControllerDevice.createInsecureRfcommSocketToServiceRecord(uuids[0].getUuid());
+                mSocket = mControllerDevice.createInsecureRfcommSocketToServiceRecord(BT_UUID);
                 // Connect the device through the socket. This will block
                 // until it succeeds or throws an exception
                 
@@ -194,70 +210,36 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
      * a Handler.  This is executed on a spawned background thread.
      */
     public void run() {
-        int ret = 0;
-        byte[] buffer = new byte[16384];
+        byte[] buffer = new byte[16];
         int i;
+        boolean running = true;
+        //Wrap the stream to allow for fixed reads
+        DataInputStream input = new DataInputStream(mInputStream);
 
-        while (ret >= 0) {
+        while (running) {
             try {
-                ret = mInputStream.read(buffer);
+                input.readFully(buffer, 0, 3);
             } catch (IOException e) {
                 break;
             }
 
-            i = 0;
-            while (i < ret) {
-                int len = ret - i;
-
-                switch (buffer[i]) {
-                case 0x1:
-                    if (len >= 3) {
-                        Message m = Message.obtain(mHandler, MESSAGE_SWITCH);
-                        m.obj = new SwitchMsg(buffer[i + 1], buffer[i + 2]);
-                        mHandler.sendMessage(m);
-                    }
-                    i += 3;
-                    break;
-
-                case 0x4:
-                    if (len >= 3) {
-                        Message m = Message.obtain(mHandler, MESSAGE_TEMPERATURE);
-                        m.obj = new TemperatureMsg(composeInt(buffer[i + 1], buffer[i + 2]));
-                        mHandler.sendMessage(m);
-                    }
-                    i += 3;
-                    break;
-
-                case 0x5:
-                    if (len >= 3) {
-                        Message m = Message.obtain(mHandler, MESSAGE_LIGHT);
-                        m.obj = new LightMsg(composeInt(buffer[i + 1],
-                                buffer[i + 2]));
-                        mHandler.sendMessage(m);
-                    }
-                    i += 3;
-                    break;
-
-                case 0x6:
-                    if (len >= 3) {
-                        Message m = Message.obtain(mHandler, MESSAGE_JOY);
-                        m.obj = new JoyMsg(buffer[i + 1], buffer[i + 2]);
-                        mHandler.sendMessage(m);
-                    }
-                    i += 3;
-                    break;
-
-                default:
-                    Log.d(TAG, "unknown msg: " + buffer[i]);
-                    i = len;
+            switch (buffer[0]) {
+                case 0x1: {
+                    Message m = Message.obtain(mHandler, MESSAGE_SWITCH);
+                    m.obj = new SwitchMsg(buffer[1], buffer[2]);
+                    mHandler.sendMessage(m);
                     break;
                 }
+                case 0x6: {
+                    Message m = Message.obtain(mHandler, MESSAGE_JOY);
+                    m.obj = new JoyMsg(buffer[1], buffer[2]);
+                    mHandler.sendMessage(m);
+                    break;
+                }
+                default:
+                    Log.d(TAG, "unknown msg: " + buffer[0]);
+                    break;
             }
-            
-            //Bluetooth + UART is slow, allow data to buffer
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) { }
         }
     }
 
@@ -272,35 +254,34 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-            case MESSAGE_CONNECTED:
-                beginGame();
-            case MESSAGE_CONNECTFAIL:
-                if(mProgress != null) {
-                    mProgress.dismiss();
-                    mProgress = null;
-                }
-                break;
-                
-            case MESSAGE_SWITCH:
-                SwitchMsg o = (SwitchMsg) msg.obj;
-                handleSwitchMessage(o);
-                break;
+                case MESSAGE_CONNECTED:
+                    beginGame();
+                case MESSAGE_CONNECTFAIL:
+                    if (mProgress != null) {
+                        mProgress.dismiss();
+                        mProgress = null;
+                    }
+                    break;
 
-            case MESSAGE_TEMPERATURE:
-                TemperatureMsg t = (TemperatureMsg) msg.obj;
-                handleTemperatureMessage(t);
-                break;
+                case MESSAGE_SWITCH:
+                    SwitchMsg o = (SwitchMsg) msg.obj;
+                    handleSwitchMessage(o);
+                    break;
 
-            case MESSAGE_LIGHT:
-                LightMsg l = (LightMsg) msg.obj;
-                handleLightMessage(l);
-                break;
+                case MESSAGE_JOY:
+                    JoyMsg j = (JoyMsg) msg.obj;
+                    handleJoyMessage(j);
+                    break;
 
-            case MESSAGE_JOY:
-                JoyMsg j = (JoyMsg) msg.obj;
-                handleJoyMessage(j);
-                break;
-
+                case MESSAGE_VIBE:
+                    try {
+                        byte[] v = (byte[]) msg.obj;
+                        mOutputStream.write(v);
+                        mOutputStream.flush();
+                    } catch (IOException e) {
+                        Log.w("AccessoryController", "Error writing vibe output");
+                    }
+                    break;
             }
         }
     };

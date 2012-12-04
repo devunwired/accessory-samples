@@ -2,7 +2,10 @@
  * ScaleActivity monitors a USB HID Point of Sale
  * weight scale device.  It interprets the scale data
  * packet and displays the resulting weight on the screen.
- * 
+ *
+ * USB HID Class Specification:
+ * http://www.usb.org/developers/devclass_docs/HID1_11.pdf
+ *
  * USB HID POS Specification:
  * http://www.usb.org/developers/devclass_docs/pos1_02.pdf
  */
@@ -26,10 +29,9 @@ import android.hardware.usb.UsbRequest;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -45,8 +47,7 @@ public class ScaleActivity extends Activity implements Runnable {
     private static final int VID = 24726;
     private static final int PID = 344;
 
-    private TextView mWeight, mStatus;
-    private WakeLock mWakeLock;
+    private TextView mWeight, mStatus, mAttributes;
     private PendingIntent mPermissionIntent;
     
     private UsbManager mUsbManager;
@@ -86,6 +87,7 @@ public class ScaleActivity extends Activity implements Runnable {
         setContentView(R.layout.launcher);
         mWeight = (TextView) findViewById(R.id.text_weight);
         mStatus = (TextView) findViewById(R.id.text_status);
+        mAttributes = (TextView) findViewById(R.id.text_attributes);
 
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
@@ -111,10 +113,8 @@ public class ScaleActivity extends Activity implements Runnable {
     public void onStart() {
         super.onStart();
 
-        //Obtain a WakeLock so the screen is on while using the application
-        final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, TAG);
-        mWakeLock.acquire();
+        //Keep the screen on while using the application
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         //Register receiver for further events
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
@@ -126,7 +126,7 @@ public class ScaleActivity extends Activity implements Runnable {
     @Override
     protected void onStop() {
         super.onStop();
-        if(mWakeLock != null) mWakeLock.release();
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         unregisterReceiver(mUsbReceiver);
         mRunning = false;
     }
@@ -183,21 +183,25 @@ public class ScaleActivity extends Activity implements Runnable {
         }
     };
 
-    public void onStatusClick(View view) {
-        if (mConnection != null) {
-            getStatusReport(mConnection);
-        }
-    }
-
     public void onZeroClick(View view) {
-
+        if (mConnection != null) {
+            setZeroScale(mConnection);
+        }
     }
 
     /*
      * Methods to update the UI with the weight value read
      * from the USB scale.
      */
-    
+
+    private void resetDisplay() {
+        mWeight.setText("---");
+        setWeightColor(0);
+
+        mStatus.setText("{ }");
+        mAttributes.setText("{ }");
+    }
+
     private void setWeightColor(int status) {
         switch(status) {
         case STATUS_FAULT:
@@ -255,6 +259,16 @@ public class ScaleActivity extends Activity implements Runnable {
      */
     private void setDevice(UsbDevice device) {
         Log.d(TAG, "setDevice " + device);
+        if (device == null) {
+            //Cancel connections
+            mConnection = null;
+            mRunning = false;
+
+            resetDisplay();
+            return;
+        }
+
+        //Verify the device has what we need
         if (device.getInterfaceCount() != 1) {
             Log.e(TAG, "could not find interface");
             return;
@@ -267,43 +281,38 @@ public class ScaleActivity extends Activity implements Runnable {
         }
         // endpoint should be of type interrupt
         UsbEndpoint ep = intf.getEndpoint(0);
-        if (ep.getType() != UsbConstants.USB_ENDPOINT_XFER_INT) {
-            Log.e(TAG, "endpoint is not interrupt type");
+        if (ep.getType() != UsbConstants.USB_ENDPOINT_XFER_INT
+                || ep.getDirection() != UsbConstants.USB_DIR_IN) {
+            Log.e(TAG, "endpoint is not Interrupt IN");
             return;
         }
         mDevice = device;
         mEndpointIntr = ep;
-        if (device != null) {
-            UsbDeviceConnection connection = mUsbManager.openDevice(device);
-            if (connection != null && connection.claimInterface(intf, true)) {
-                //Start the polling thread
-                Toast.makeText(this, "open SUCCESS", Toast.LENGTH_SHORT).show();
-                mConnection = connection;
-                mRunning = true;
-                Thread thread = new Thread(null, this, "ScaleMonitor");
-                thread.start();
-            } else {
-                Toast.makeText(this, "open FAIL", Toast.LENGTH_SHORT).show();
-                mConnection = null;
-                mRunning = false;
-            }
+
+        UsbDeviceConnection connection = mUsbManager.openDevice(device);
+        if (connection != null && connection.claimInterface(intf, true)) {
+            //Start the polling thread
+            Toast.makeText(this, "open SUCCESS", Toast.LENGTH_SHORT).show();
+            mConnection = connection;
+            mRunning = true;
+            Thread thread = new Thread(null, this, "ScaleMonitor");
+            thread.start();
+
+            //Get scale attributes
+            updateAttributesData(mConnection);
+            //Update the weight limit information
+            updateLimitData(mConnection);
         } else {
+            Toast.makeText(this, "open FAIL", Toast.LENGTH_SHORT).show();
             mConnection = null;
             mRunning = false;
         }
     }
 
-    private static final int MSG_STATUS = 100;
     private static final int MSG_DATA = 101;
     private Handler mHandler = new Handler() {
         public void handleMessage(Message msg) {
             switch (msg.what) {
-            case MSG_STATUS:
-                if (msg.obj != null) {
-                    String status = (String) msg.obj;
-                    mStatus.setText(status);
-                }
-                break;
             case MSG_DATA:
                 byte[] data = (byte[]) msg.obj;
                 //This value will always be 0x03 for the data report
@@ -340,26 +349,62 @@ public class ScaleActivity extends Activity implements Runnable {
         }
     };
 
-    public void postStatusMessage(String message) {
-        mHandler.sendMessage(Message.obtain(mHandler, MSG_STATUS, message));
-    }
-
     public void postWeightData(byte[] data) {
         mHandler.sendMessage(Message.obtain(mHandler, MSG_DATA, data));
     }
 
-    private void getStatusReport(UsbDeviceConnection connection) {
+    private void updateAttributesData(UsbDeviceConnection connection) {
         int requestType = 0xA1; // 1010 0001b
         int request = 0x01; //HID GET_REPORT
-        int value = 0x0305; //Input report, ID = 5
+        int value = 0x0301; //Feature report, ID = 1
+        int index = 0; //Interface 0
+        int length = 3;
+
+        byte[] buffer = new byte[length];
+        connection.controlTransfer(requestType, request, value, index, buffer, length, 2000);
+
+        //Parse the data and fill the display
+        byte reportId = buffer[0]; //Always 0x01
+
+        int scaleClass = (buffer[1] & 0xFF);
+        //Maps to a units constant defined for HID POS
+        int defaultUnits = (buffer[2] & 0xFF);
+
+        mAttributes.setText(String.format("Class: %d, Default Units: %s", scaleClass, getUnitDisplayString(defaultUnits)));
+    }
+
+    /*
+     * Get the weight limit of the connected scale by requesting a
+     * Weight Limit Feature Report.
+     */
+    private void updateLimitData(UsbDeviceConnection connection) {
+        int requestType = 0xA1; // 1010 0001b
+        int request = 0x01; //HID GET_REPORT
+        int value = 0x0305; //Feature report, ID = 5
         int index = 0; //Interface 0
         int length = 5;
 
         byte[] buffer = new byte[length];
         connection.controlTransfer(requestType, request, value, index, buffer, length, 2000);
-        Toast.makeText(this, "Report: "+buffer[0]+", "+buffer[1]+", "+buffer[2]+", "+buffer[3]+", "+buffer[4], Toast.LENGTH_SHORT).show();
+
+        //Parse the data and fill the display
+        byte reportId = buffer[0]; //Always 0x05
+        //Maps to a units constant defined for HID POS
+        int unit = (buffer[1] & 0xFF);
+        //Scaling applied to the weight value, if any
+        byte scaling = buffer[2];
+
+        //Two byte value representing the weight itself
+        int weight = (buffer[4] & 0xFF) << 8;
+        weight += (buffer[3] & 0xFF);
+
+        mStatus.setText(String.format("Weight Limit: %d %s", weight, getUnitDisplayString(unit)));
     }
 
+    /*
+     * Set the scale to zero its current reading by sending a
+     * Scale Control Report
+     */
     private void setZeroScale(UsbDeviceConnection connection) {
         int requestType = 0x21; // 0010 0001b
         int request = 0x09; //HID SET_REPORT
@@ -368,10 +413,43 @@ public class ScaleActivity extends Activity implements Runnable {
         int length = 2;
 
         byte[] buffer = new byte[length];
-        //TODO: Fill buffer with control data
+        buffer[0] = 0x02; //Report ID = 2
+        buffer[1] = 0x02; //Set the zero flag
+
         connection.controlTransfer(requestType, request, value, index, buffer, length, 2000);
     }
 
+    private String getUnitDisplayString(int unitConstant) {
+        switch (unitConstant) {
+            case UNITS_MILLIGRAM:
+                return "Milligrams";
+            case UNITS_GRAM:
+                return "Grams";
+            case UNITS_KILOGRAM:
+                return "Kilograms";
+            case UNITS_CARAT:
+                return "Carats";
+            case UNITS_TAEL:
+                return "Taels";
+            case UNITS_GRAIN:
+                return "Grains";
+            case UNITS_PENNYWEIGHT:
+                return "Pennyweights";
+            case UNITS_MTON:
+                return "Metric Tons";
+            case UNITS_ATON:
+                return "Avoir Tons";
+            case UNITS_TROYOUNCE:
+                return "Troy Ounces";
+            case UNITS_OUNCE:
+                return "Ounces";
+            case UNITS_POUND:
+                return "Pounds";
+            default:
+                return "";
+        }
+    }
+    
     /*
      * Runnable block to poll the interrupt endpoint on the scale.
      * This will return a Scale Data Report, which we pass on to
@@ -390,13 +468,6 @@ public class ScaleActivity extends Activity implements Runnable {
                 byte[] raw = new byte[6];
                 buffer.get(raw);
                 buffer.clear();
-
-                String data = "";
-                for (int i = 0; i < raw.length; i++) {
-                    data += String.format("%02x", raw[i] & 0xFF).toUpperCase();
-                    data += " ";
-                }
-                postStatusMessage("Raw Data = " + data);
 
                 postWeightData(raw);
 

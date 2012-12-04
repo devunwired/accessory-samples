@@ -5,8 +5,6 @@
     android:background="#333"
     android:orientation="vertical" >
 
-    <include layout="@layout/sensors" />
-
     <SurfaceView
         android:id="@+id/gameSurface"
         android:layout_width="match_parent"

@@ -5,11 +5,6 @@
 
 package com.examples.accessory.controller;
 
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -22,6 +17,11 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
+
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class MainUsbActivity extends GameActivity implements Runnable {
 
@@ -40,6 +40,7 @@ public class MainUsbActivity extends GameActivity implements Runnable {
 	private static final int MESSAGE_TEMPERATURE = 2;
 	private static final int MESSAGE_LIGHT = 3;
 	private static final int MESSAGE_JOY = 4;
+    private static final int MESSAGE_VIBE = 5;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -120,8 +121,17 @@ public class MainUsbActivity extends GameActivity implements Runnable {
 	    setContentView(R.layout.no_device);
 	    super.hideControls();
 	}
-	
-	private void openAccessory(UsbAccessory accessory) {
+
+    @Override
+    protected void sendVibeControl(boolean longDuration) {
+        byte[] command = {0x02,
+                longDuration ? (byte)0x64 : (byte)0x32,
+                0x00};
+        Message msg = Message.obtain(null, MESSAGE_VIBE, command);
+        mHandler.sendMessage(msg);
+    }
+
+    private void openAccessory(UsbAccessory accessory) {
 		mFileDescriptor = mUsbManager.openAccessory(accessory);
 		if (mFileDescriptor != null) {
 			mAccessory = accessory;
@@ -217,25 +227,6 @@ public class MainUsbActivity extends GameActivity implements Runnable {
 					i += 3;
 					break;
 
-				case 0x4:
-					if (len >= 3) {
-						Message m = Message.obtain(mHandler, MESSAGE_TEMPERATURE);
-						m.obj = new TemperatureMsg(composeInt(buffer[i + 1], buffer[i + 2]));
-						mHandler.sendMessage(m);
-					}
-					i += 3;
-					break;
-
-				case 0x5:
-					if (len >= 3) {
-						Message m = Message.obtain(mHandler, MESSAGE_LIGHT);
-						m.obj = new LightMsg(composeInt(buffer[i + 1],
-								buffer[i + 2]));
-						mHandler.sendMessage(m);
-					}
-					i += 3;
-					break;
-
 				case 0x6:
 					if (len >= 3) {
 						Message m = Message.obtain(mHandler, MESSAGE_JOY);
@@ -259,32 +250,31 @@ public class MainUsbActivity extends GameActivity implements Runnable {
 	 * This Handler receives messages from the polling thread and
 	 * injects them into the GameActivity methods on the main thread.
 	 */
-	Handler mHandler = new Handler() {
-		@Override
-		public void handleMessage(Message msg) {
-			switch (msg.what) {
-			case MESSAGE_SWITCH:
-				SwitchMsg o = (SwitchMsg) msg.obj;
-				handleSwitchMessage(o);
-				break;
+    Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MESSAGE_SWITCH:
+                    SwitchMsg o = (SwitchMsg) msg.obj;
+                    handleSwitchMessage(o);
+                    break;
 
-			case MESSAGE_TEMPERATURE:
-				TemperatureMsg t = (TemperatureMsg) msg.obj;
-				handleTemperatureMessage(t);
-				break;
+                case MESSAGE_JOY:
+                    JoyMsg j = (JoyMsg) msg.obj;
+                    handleJoyMessage(j);
+                    break;
 
-			case MESSAGE_LIGHT:
-				LightMsg l = (LightMsg) msg.obj;
-				handleLightMessage(l);
-				break;
-
-			case MESSAGE_JOY:
-				JoyMsg j = (JoyMsg) msg.obj;
-				handleJoyMessage(j);
-				break;
-
-			}
-		}
-	};
+                case MESSAGE_VIBE:
+                    try {
+                        byte[] v = (byte[]) msg.obj;
+                        mOutputStream.write(v);
+                        mOutputStream.flush();
+                    } catch (IOException e) {
+                        Log.w("AccessoryController", "Error writing vibe output");
+                    }
+                    break;
+            }
+        }
+    };
 
 }

@@ -6,8 +6,6 @@
 
 package com.examples.accessory.controller;
 
-import java.text.DecimalFormat;
-
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -24,15 +22,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 public abstract class GameActivity extends Activity {
     protected static final String TAG = "AccessoryController";
-    
-    private TextView mTemperature;
-    private TextView mLightView;
-    private TextView mLightRawView;
     
     private SurfaceView mGameSurface;
     private GameThread mGameThread;
@@ -40,9 +33,7 @@ public abstract class GameActivity extends Activity {
     /* Minimum value of the joystick before the event actually moves the player */
     private static final int JOY_THRESHOLD = 50;
     /* Scale factor to reduce the sensitivity of the joystick events */
-    private static final float JOY_SCALE = 0.8f;
-    private final DecimalFormat mLightValueFormatter = new DecimalFormat("##.#");
-    private final DecimalFormat mTemperatureFormatter = new DecimalFormat("###" + (char) 0x00B0);
+    private static final float JOY_SCALE = 0.05f;
 
     /*
      * The following are message types defined for each input event that
@@ -64,30 +55,6 @@ public abstract class GameActivity extends Activity {
 
         public byte getState() {
             return state;
-        }
-    }
-
-    protected class TemperatureMsg {
-        private int temperature;
-
-        public TemperatureMsg(int temperature) {
-            this.temperature = temperature;
-        }
-
-        public int getTemperature() {
-            return temperature;
-        }
-    }
-
-    protected class LightMsg {
-        private int light;
-
-        public LightMsg(int light) {
-            this.light = light;
-        }
-
-        public int getLight() {
-            return light;
         }
     }
 
@@ -122,7 +89,9 @@ public abstract class GameActivity extends Activity {
     //Each subclass should define specifically how to determine
     //if their hardware interface is "connected"
     protected abstract boolean isControllerConnected();
-    
+
+    protected abstract void sendVibeControl(boolean longDuration);
+
     protected void enableControls(boolean enable) {
         if (enable) {
             showControls();
@@ -140,10 +109,6 @@ public abstract class GameActivity extends Activity {
 
     protected void showControls() {
         setContentView(R.layout.main);
-
-        mTemperature = (TextView) findViewById(R.id.tempValue);
-        mLightView = (TextView) findViewById(R.id.lightPercentValue);
-        mLightRawView = (TextView) findViewById(R.id.lightRawValue);
         
         mGameSurface = (SurfaceView) findViewById(R.id.gameSurface);
         mGameThread = new GameThread(this, mGameSurface);
@@ -151,10 +116,11 @@ public abstract class GameActivity extends Activity {
     }
 
     protected void handleJoyMessage(JoyMsg j) {
-        int x = j.getX();
+        //Lateral polarity of joystick is reversed
+        int x = -j.getX();
         int y = j.getY();
         if(Math.abs(x) < JOY_THRESHOLD && Math.abs(y) < JOY_THRESHOLD) return;
-        
+
         x = (int)(x * JOY_SCALE);
         y = (int)(y * JOY_SCALE);
         if(mGameThread != null) {
@@ -162,23 +128,15 @@ public abstract class GameActivity extends Activity {
         }
     }
 
-    protected void handleLightMessage(LightMsg l) {
-        setLightValue(l.getLight());
-    }
-
-    protected void handleTemperatureMessage(TemperatureMsg t) {
-        setTemperature(t.getTemperature());
-    }
-
     protected void handleSwitchMessage(SwitchMsg o) {
         byte sw = o.getSw();
         switch(sw) {
-        case 1: //Middle Pushbutton
+        case 1: //Button B
             if(o.getState() != 0 && mGameThread != null) {
                 mGameThread.togglePlayerColor();
             }
             break;
-        case 4: //Joystick button
+        case 0: //Button A
             if(o.getState() != 0 && mGameThread != null) {
                 boolean success = mGameThread.attemptPickup();
                 if(success) {
@@ -186,49 +144,12 @@ public abstract class GameActivity extends Activity {
                 } else {
                     Toast.makeText(this, "Sorry.  Try Again!", Toast.LENGTH_SHORT).show();
                 }
+                sendVibeControl(success);
             }
             break;
         default:
             break;
         }
-    }
-
-    public void setTemperature(int temperatureFromArduino) {
-        /*
-         * Arduino board contains a 6 channel (8 channels on the Mini and Nano,
-         * 16 on the Mega), 10-bit analog to digital converter. This means that
-         * it will map input voltages between 0 and 5 volts into integer values
-         * between 0 and 1023. This yields a resolution between readings of: 5
-         * volts / 1024 units or, .0049 volts (4.9 mV) per unit.
-         */
-        double voltagemv = temperatureFromArduino * 4.9;
-        /*
-         * The change in voltage is scaled to a temperature coefficient of 10.0
-         * mV/degC (typical) for the MCP9700/9700A and 19.5 mV/degC (typical)
-         * for the MCP9701/9701A. The out- put voltage at 0 degC is also scaled
-         * to 500 mV (typical) and 400 mV (typical) for the MCP9700/9700A and
-         * MCP9701/9701A, respectively. VOUT = TC¥TA+V0degC
-         */
-        double kVoltageAtZeroCmv = 400;
-        double kTemperatureCoefficientmvperC = 19.5;
-        double ambientTemperatureC = ((double) voltagemv - kVoltageAtZeroCmv)
-                / kTemperatureCoefficientmvperC;
-        double temperatureF = (9.0 / 5.0) * ambientTemperatureC + 32.0;
-        mTemperature.setText(mTemperatureFormatter.format(temperatureF));
-    }
-
-    public void setLightValue(int lightValueFromArduino) {
-        mLightRawView.setText(String.valueOf(lightValueFromArduino));
-        mLightView.setText(mLightValueFormatter
-                .format((100.0 * (double) lightValueFromArduino / 1024.0)));
-    }
-
-    public void onTemperature(int temperature) {
-        setTemperature(temperature);
-    }
-
-    public void onLightChange(int lightValue) {
-        setLightValue(lightValue);
     }
     
     /*
