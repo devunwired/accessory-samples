@@ -55,6 +55,7 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         registerReceiver(mAclConnectReceiver, filter);
 
         mSocket = null;
@@ -64,9 +65,7 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(mAclConnectReceiver);
-        try {
-            mSocket.close();
-        } catch (Exception e) { }
+        closeConnection();
     }
 
     @Override
@@ -87,6 +86,14 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
     protected void hideControls() {
         setContentView(R.layout.no_device_bluetooth);
         super.hideControls();
+    }
+
+    private void closeConnection() {
+        enableControls(false);
+
+        try {
+            mSocket.close();
+        } catch (Exception e) { }
     }
 
     public void onConnectClick(View v) {
@@ -115,10 +122,15 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
     private BroadcastReceiver mAclConnectReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.i("AccessoryController", "ACL: "+intent.getAction());
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            if (device != null) {
-                Log.i("AccessoryController", "Device: "+device.getName());
+
+            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
+                Log.i("AccessoryController", "ACL Connect Device: "+device.getName());
+            }
+            if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(intent.getAction())
+                    || BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(intent.getAction())) {
+                Log.i("AccessoryController", "ACL Disconnect Device: "+device.getName());
+                closeConnection();
             }
         }
     };
@@ -139,7 +151,10 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
                         && CONTROLLER_CLASS == device.getBluetoothClass().getDeviceClass()) {
                     // We found our controller
                     mControllerDevice = device;
-                    mConnectThread.start();
+                    //Start a thread to establish connection
+                    ConnectThread thread = new ConnectThread();
+                    thread.start();
+
                     finishDiscovery();
                     mProgress = ProgressDialog.show(MainBluetoothActivity.this, "", "Connecting...", true);
                 }
@@ -170,7 +185,7 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
      * and setting up the data transfer because this process is blocking and
      * can take some time to complete.
      */
-    private Thread mConnectThread = new Thread() {
+    private class ConnectThread extends Thread {
         public void run() {
             try {
                 //Create a socket to the RFCOMM service
@@ -211,13 +226,6 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
             }
         }
     };
-    
-    private int composeInt(byte hi, byte lo) {
-        int val = (int) hi & 0xff;
-        val *= 256;
-        val += (int) lo & 0xff;
-        return val;
-    }
     
     /*
      * Runnable block that will poll the accessory InputStream for

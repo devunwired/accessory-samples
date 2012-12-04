@@ -172,13 +172,6 @@ public class MainUsbActivity extends GameActivity implements Runnable {
             }
         }
     };
-	
-	private int composeInt(byte hi, byte lo) {
-		int val = (int) hi & 0xff;
-		val *= 256;
-		val += (int) lo & 0xff;
-		return val;
-	}
 
 	/*
 	 * Runnable block that will poll the accessory data stream
