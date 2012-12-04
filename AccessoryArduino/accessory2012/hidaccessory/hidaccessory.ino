@@ -10,27 +10,27 @@
 #define  BUTTON3        A8
 
 // Report Descriptor Used in Library
-//			uint8_t reportDesc[] =
-//			{
-//			  0x05, 0x0C,	// Usage Page (Consumer Devices)
-//			  0x09, 0x01,	// Usage (Consumer Control)
-//			  0xA1, 0x01,	// Collection (Application)
-//			  0x15, 0x00,	//   Logical Minimum (0)
-//			  0x25, 0x01,	//   Logical Maximum (1)
-//			  0x09, 0xB5,	//   Usage (Scan Next)
-//			  0x09, 0xB6,	//   Usage (Scan Prev)
-//			  0x09, 0xB7,	//   Usage (Stop)
-//			  0x09, 0xCD,	//   Usage (Play/Pause)
-//			  0x09, 0xE2,	//   Usage (Mute)
-//			  0x09, 0xE9,	//   Usage (Volume Up)
-//			  0x09, 0xEA,	//   Usage (Volume Down)
-//			  0x75, 0x01,	//   Report Size (1)
-//			  0x95, 0x07,	//   Report Count (7)
-//			  0x81, 0x02,	//   Input (Data, Variable, Absolute)
-//			  0x95, 0x01,   //   Report Count (1)
-//			  0x81, 0x01,	//   Input (Constant)
-//			  0xC0			// End Collection
-//			};
+//		uint8_t reportDesc[] =
+//		{
+//		  0x05, 0x0C,	// Usage Page (Consumer Devices)
+//		  0x09, 0x01,	// Usage (Consumer Control)
+//		  0xA1, 0x01,	// Collection (Application)
+//		  0x15, 0x00,	//   Logical Minimum (0)
+//		  0x25, 0x01,	//   Logical Maximum (1)
+//		  0x09, 0xB5,	//   Usage (Scan Next)
+//		  0x09, 0xB6,	//   Usage (Scan Prev)
+//		  0x09, 0xB7,	//   Usage (Stop)
+//		  0x09, 0xCD,	//   Usage (Play/Pause)
+//		  0x09, 0xE2,	//   Usage (Mute)
+//		  0x09, 0xE9,	//   Usage (Volume Up)
+//		  0x09, 0xEA,	//   Usage (Volume Down)
+//		  0x75, 0x01,	//   Report Size (1)
+//		  0x95, 0x07,	//   Report Count (7)
+//		  0x81, 0x02,	//   Input (Data, Variable, Absolute)
+//		  0x95, 0x01,   //   Report Count (1)
+//		  0x81, 0x01,	//   Input (Constant)
+//		  0xC0			// End Collection
+//		};
 
 
 ADK acc;
