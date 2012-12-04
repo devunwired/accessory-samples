@@ -9,7 +9,7 @@
 #define  BUTTON2        A7
 #define  BUTTON3        A8
 
-//Causes volume to rail upwards
+// Report Descriptor Used in Library
 //			uint8_t reportDesc[] =
 //			{
 //			  0x05, 0x0C,	// Usage Page (Consumer Devices)
@@ -117,7 +117,7 @@ void loop()
   //Vol Up
   temp = digitalRead(BUTTON1);
   if (b1 != temp) {
-    msg[0] = temp ? 0 : 1;
+    msg[0] = temp ? 0 : 32;
     write_report(msg, 1);
     b1 = temp;
   }
@@ -125,7 +125,7 @@ void loop()
   //Vol Dn
   temp = digitalRead(BUTTON2);
   if (b2 != temp) {
-    msg[0] = temp ? 0 : 2;
+    msg[0] = temp ? 0 : 64;
     write_report(msg, 1);
     b2 = temp;
   }
@@ -133,7 +133,7 @@ void loop()
   //Play/Pause Button
   temp = digitalRead(BUTTON3);
   if (b3 != temp) {
-    msg[0] = temp ? 0 : 0;
+    msg[0] = temp ? 0 : 8;
     write_report(msg, 1);
     b3 = temp;
   }
