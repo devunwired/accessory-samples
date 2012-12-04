@@ -38,8 +38,6 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
     private static final UUID BT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private static final int MESSAGE_SWITCH = 1;
-    private static final int MESSAGE_TEMPERATURE = 2;
-    private static final int MESSAGE_LIGHT = 3;
     private static final int MESSAGE_JOY = 4;
     private static final int MESSAGE_VIBE = 5;
     private static final int MESSAGE_CONNECTED = 100;
@@ -54,12 +52,18 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
     @Override
     protected void onResume() {
         super.onResume();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        registerReceiver(mAclConnectReceiver, filter);
+
         mSocket = null;
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        unregisterReceiver(mAclConnectReceiver);
         try {
             mSocket.close();
         } catch (Exception e) { }
@@ -107,7 +111,18 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
         Log.d(TAG, "Bluetooth Connected");
         enableControls(true);
     }
-    
+
+    private BroadcastReceiver mAclConnectReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i("AccessoryController", "ACL: "+intent.getAction());
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            if (device != null) {
+                Log.i("AccessoryController", "Device: "+device.getName());
+            }
+        }
+    };
+
     /*
      * This receiver will listen during the discovery process for each device located.
      * If a device with the same friendly name as our controller is found, we abort

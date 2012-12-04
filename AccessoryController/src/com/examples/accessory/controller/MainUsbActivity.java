@@ -37,8 +37,6 @@ public class MainUsbActivity extends GameActivity implements Runnable {
 	FileOutputStream mOutputStream;
 
 	private static final int MESSAGE_SWITCH = 1;
-	private static final int MESSAGE_TEMPERATURE = 2;
-	private static final int MESSAGE_LIGHT = 3;
 	private static final int MESSAGE_JOY = 4;
     private static final int MESSAGE_VIBE = 5;
 
@@ -52,23 +50,9 @@ public class MainUsbActivity extends GameActivity implements Runnable {
 		filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
 		registerReceiver(mUsbReceiver, filter);
 
-		if (getLastNonConfigurationInstance() != null) {
-			mAccessory = (UsbAccessory) getLastNonConfigurationInstance();
-			openAccessory(mAccessory);
-		}
-
 		setContentView(R.layout.main);
 
 		enableControls(false);
-	}
-
-	@Override
-	public Object onRetainNonConfigurationInstance() {
-		if (mAccessory != null) {
-			return mAccessory;
-		} else {
-			return super.onRetainNonConfigurationInstance();
-		}
 	}
 
 	@Override
