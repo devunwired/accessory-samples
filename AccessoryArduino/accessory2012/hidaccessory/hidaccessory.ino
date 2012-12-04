@@ -138,6 +138,7 @@ void loop()
     b3 = temp;
   }
   
+  //Update connection status LED
   temp = acc.accessoryConnected();
   if (temp != conn) {
     if (temp)
