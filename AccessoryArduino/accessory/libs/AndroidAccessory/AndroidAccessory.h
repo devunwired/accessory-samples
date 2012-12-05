@@ -17,7 +17,7 @@
 #ifndef __AndroidAccessory_h__
 #define __AndroidAccessory_h__
 
-#include "WProgram.h"
+#include "Arduino.h"
 
 class AndroidAccessory {
 private:

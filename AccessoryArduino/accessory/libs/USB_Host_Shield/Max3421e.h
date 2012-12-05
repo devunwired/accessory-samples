@@ -31,10 +31,7 @@
 #ifndef _MAX3421E_H_
 #define _MAX3421E_H_
 
-
-//#include <Spi.h>
-//#include <WProgram.h>
-#include "WProgram.h"
+#include "Arduino.h"
 #include "Max3421e_constants.h"
 
 class MAX3421E /* : public SPI */ {
@@ -77,7 +74,7 @@ class MAX3421E /* : public SPI */ {
         tmp = SPDR;
     }
 //        void init();
-    friend class Max_LCD;        
+    friend class Max_LCD;
 };
 
 

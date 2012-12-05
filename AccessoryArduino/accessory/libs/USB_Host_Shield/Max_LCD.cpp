@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include "WProgram.h"
+#include "Arduino.h"
 
 // When the display powers up, it is configured as follows:
 //
@@ -66,15 +66,15 @@
 #define CLR_E   lcdPins &= ~E
 
 #define SENDlcdPins()   MAX3421E::gpioWr( lcdPins )
-    
+
 #define LCD_sendcmd(a)  {   CLR_RS;             \
                             sendbyte(a);    \
                         }
- 
+
 #define LCD_sendchar(a) {   SET_RS;             \
                             sendbyte(a);    \
                         }
-                            
+
 static byte lcdPins;    //copy of LCD pins
 
 Max_LCD::Max_LCD()
@@ -86,10 +86,10 @@ Max_LCD::Max_LCD()
 void Max_LCD::init()
 {
     _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
- 
+
  //   MAX3421E::gpioWr(0x55);
- 
-  begin(16, 1);  
+
+  begin(16, 1);
 }
 
 void Max_LCD::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
@@ -136,10 +136,10 @@ void Max_LCD::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
     SENDlcdPins();
     delayMicroseconds(10000);
   // finally, set # lines, font size, etc.
-  command(LCD_FUNCTIONSET | _displayfunction);  
+  command(LCD_FUNCTIONSET | _displayfunction);
 
   // turn the display on with no cursor or blinking default
-  _displaycontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF;  
+  _displaycontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF;
   display();
 
   // clear it off
@@ -170,7 +170,7 @@ void Max_LCD::setCursor(uint8_t col, uint8_t row)
   if ( row > _numlines ) {
     row = _numlines-1;    // we count rows starting w/0
   }
- 
+
   command(LCD_SETDDRAMADDR | (col + row_offsets[row]));
 }
 
@@ -254,7 +254,7 @@ inline void Max_LCD::command(uint8_t value) {
   delayMicroseconds(100);
 }
 
-inline void Max_LCD::write(uint8_t value) {
+inline size_t Max_LCD::write(uint8_t value) {
   LCD_sendchar(value);
 }
 
@@ -264,14 +264,14 @@ void Max_LCD::sendbyte( uint8_t val )
     lcdPins |= ( val & 0xf0 );      //copy upper nibble to LCD variable
     SET_E;                          //send
     SENDlcdPins();
-    delayMicroseconds(2);  
+    delayMicroseconds(2);
     CLR_E;
     delayMicroseconds(2);
     SENDlcdPins();
     lcdPins &= 0x0f;                    //prepare place for the lower nibble
     lcdPins |= ( val << 4 ) & 0xf0;    //copy lower nibble to LCD variable
     SET_E;                              //send
-    SENDlcdPins();  
+    SENDlcdPins();
     CLR_E;
     SENDlcdPins();
     delayMicroseconds(100);
