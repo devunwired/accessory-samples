@@ -106,7 +106,9 @@ public class HeadsetService extends Service {
         Notification note = new Notification.Builder(this)
                 .setContentTitle("BluetoothProxyService")
                 .setContentText(text)
-                .setSmallIcon(R.drawable.ic_launcher)
+                .setTicker(text)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setOngoing(true)
                 .getNotification();
         mNotificationManager.notify(NOTE_ID, note);
     }
