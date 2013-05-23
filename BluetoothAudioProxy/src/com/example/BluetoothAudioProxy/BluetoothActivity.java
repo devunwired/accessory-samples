@@ -32,4 +32,16 @@ public class BluetoothActivity extends Activity {
         Intent intent = new Intent(this, HeadsetService.class);
         stopService(intent);
     }
+
+    public void onStartVoiceClick(View v) {
+        Intent intent = new Intent(this, HeadsetService.class);
+        intent.setAction(HeadsetService.ACTION_STARTVOICE);
+        startService(intent);
+    }
+
+    public void onStopVoiceClick(View v) {
+        Intent intent = new Intent(this, HeadsetService.class);
+        intent.setAction(HeadsetService.ACTION_STOPVOICE);
+        startService(intent);
+    }
 }

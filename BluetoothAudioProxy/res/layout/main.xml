@@ -9,11 +9,31 @@
         android:layout_height="wrap_content"
         android:text="Start BluetoothProxy Service"
         android:onClick="onStartClick"/>
-
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Stop BluetoothProxy Service"
         android:onClick="onStopClick"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start Voice Recognition"
+        android:onClick="onStartVoiceClick"/>
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Stop Voice Recognition"
+        android:onClick="onStopVoiceClick"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 </LinearLayout>
 

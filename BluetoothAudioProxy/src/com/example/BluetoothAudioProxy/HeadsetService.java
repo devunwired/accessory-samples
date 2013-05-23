@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
@@ -24,6 +25,9 @@ import android.widget.Toast;
 public class HeadsetService extends Service {
     private static final String TAG = "BluetoothProxyMonitorService";
     private static final int NOTE_ID = 1000;
+
+    public static final String ACTION_STARTVOICE = "com.example.BluetoothAudioProxy.action.STARTVOICE";
+    public static final String ACTION_STOPVOICE = "com.example.BluetoothAudioProxy.action.STOPVOICE";
 
     BluetoothAdapter mBluetoothAdapter;
     BluetoothHeadset mBluetoothHeadset;
@@ -52,6 +56,19 @@ public class HeadsetService extends Service {
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent == null) return START_STICKY;
+
+        if (ACTION_STARTVOICE.equals(intent.getAction())) {
+            startVoice();
+        } else if (ACTION_STOPVOICE.equals(intent.getAction())) {
+            stopVoice();
+        }
+
+        return START_STICKY;
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "Destroying HeadsetService...");
@@ -59,6 +76,30 @@ public class HeadsetService extends Service {
 
         unregisterReceiver(mProfileReceiver);
         mNotificationManager.cancel(NOTE_ID);
+    }
+
+    public boolean startVoice() {
+        if (mBluetoothHeadset == null || mBluetoothHeadset.getConnectedDevices().isEmpty()) {
+            //No valid connection to initiate
+            Toast.makeText(this, "Failed to Start Voice Recognition", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        BluetoothDevice device = mBluetoothHeadset.getConnectedDevices().get(0);
+        mBluetoothHeadset.startVoiceRecognition(device);
+        return true;
+    }
+
+    public boolean stopVoice() {
+        if (mBluetoothHeadset == null || mBluetoothHeadset.getConnectedDevices().isEmpty()) {
+            //No valid connection to initiate
+            Toast.makeText(this, "Failed to Stop Voice Recognition", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        BluetoothDevice device = mBluetoothHeadset.getConnectedDevices().get(0);
+        mBluetoothHeadset.stopVoiceRecognition(device);
+        return true;
     }
 
     private void buildNotification(String text) {
