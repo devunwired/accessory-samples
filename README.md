@@ -6,6 +6,7 @@ This repository contains sample applications demonstrating many of the technique
 Examples include:
 
 - Bluetooth RFCOMM
+- Bluetooth Headset Profile
 - USB Open Accessory Protocol
 - USB Host Protocol
 
