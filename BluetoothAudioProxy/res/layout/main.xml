@@ -25,11 +25,13 @@
         android:layout_height="wrap_content"
         android:text="Start Voice Recognition"
         android:onClick="onStartVoiceClick"/>
-    <Button
+    <TextView
+        android:id="@+id/text_result"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Stop Voice Recognition"
-        android:onClick="onStopVoiceClick"/>
+        android:gravity="center_horizontal"
+        android:textSize="24dp"
+        android:textStyle="bold"/>
 
     <Space
         android:layout_width="match_parent"
