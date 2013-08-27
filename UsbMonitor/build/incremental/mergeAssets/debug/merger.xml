@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger>
+
+    <dataSet config="main" >
+        <source path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/assets" />
+    </dataSet>
+    <dataSet config="debug" >
+        <source path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/src/debug/assets" />
+    </dataSet>
+
+</merger>

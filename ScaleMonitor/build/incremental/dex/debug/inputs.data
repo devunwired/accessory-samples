@@ -1,0 +1,13 @@
+# incremental data. DO NOT EDIT.
+# format is <lastModified> <length> <SHA-1> <path>
+# Encoding is UTF-8
+1377575456000 367 cc787a01a3aa6adcf5d59a752bd19afbbb122d18 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/BuildConfig.class
+1377575456000 2569 ec636ad555998da76d2a180684823cc6bd52f2d9 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/ScaleActivity$1.class
+1377575456000 496 9a066ce7c5c920f875dca51c9d94a2e67438dd4e /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/R$id.class
+1377575456000 1515 0a38de2a3ec5333f80b2c62bf3b731ef29f31f71 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/ScaleActivity$2.class
+1377575456000 12667 a6995c53dd434e8d9ca920abd592825d513a570c /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/ScaleActivity.class
+1377575456000 427 9f7b0ecfdb4c75a57b49ca773776e09fedf583d1 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/R$xml.class
+1377575456000 431 eae68e8915076cb2df063a7dd00a102f281a1047 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/R$layout.class
+1377575456000 373 1949c9c8acd138648f7538f168ddcb73b62eeb10 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/R$attr.class
+1377575456000 602 0c65d76d144a6fe83198eea73c748f7280385383 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/R.class
+1377575456000 427 92f44ca2acfc8217242025e85141c65997fd6642 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/classes/debug/com/examples/usb/scalemonitor/R$string.class

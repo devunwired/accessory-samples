@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:gravity="center_horizontal"
+        android:textColor="@android:color/white"
+        android:textSize="52dp"
+        android:text="USB Scale Monitor" />
+    <TextView
+        android:id="@+id/text_attributes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:gravity="center_horizontal"
+        android:textColor="@android:color/white"
+        android:textSize="22dp"
+        android:text="{ }" />
+    <TextView
+        android:id="@+id/text_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:gravity="center_horizontal"
+        android:textColor="@android:color/white"
+        android:textSize="22dp"
+        android:text="{ }" />
+    <TextView
+        android:id="@+id/text_weight"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="200dp"
+        android:text="---" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Zero Scale"
+        android:onClick="onZeroClick" />
+</LinearLayout>
+
+
+<!-- From: file:/Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/res/layout/launcher.xml -->

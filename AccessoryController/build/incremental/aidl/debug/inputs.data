@@ -1,0 +1,6 @@
+# incremental data. DO NOT EDIT.
+# format is <lastModified> <length> <SHA-1> <path>
+# Encoding is UTF-8
+1354667562000 7273 fb9033abdb1953463757d646c6af823f1b915319 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/AccessoryController/src/com/examples/accessory/controller/MainUsbActivity.java
+1369794334000 11726 9493c9e952c8c4b5f4a5fc3e85a569bbb9aa74de /Users/davesmith/Documents/AndroidProjects/AccessorySamples/AccessoryController/src/com/examples/accessory/controller/MainBluetoothActivity.java
+1354419245000 9181 90ed6ff2a7fe406e7ad19e2514d8803372d7411c /Users/davesmith/Documents/AndroidProjects/AccessorySamples/AccessoryController/src/com/examples/accessory/controller/GameActivity.java

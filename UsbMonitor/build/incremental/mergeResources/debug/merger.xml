@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger>
+
+    <dataSet config="main" >
+        <source path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res" >
+            <file
+                name="icon"
+                path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res/drawable/icon.png"
+                qualifiers=""
+                type="drawable" />
+            <file
+                name="main"
+                path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res/layout/main.xml"
+                qualifiers=""
+                type="layout" />
+            <file
+                path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res/values/strings.xml"
+                qualifiers="" >
+                <string name="app_name" >UsbMonitor
+                </string>
+            </file>
+            <file
+                name="device_filter"
+                path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res/xml/device_filter.xml"
+                qualifiers=""
+                type="xml" />
+        </source>
+        <source path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/res/rs/debug" />
+    </dataSet>
+    <dataSet config="debug" >
+        <source path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/src/debug/res" />
+    </dataSet>
+
+</merger>

@@ -1,0 +1,7 @@
+# incremental data. DO NOT EDIT.
+# format is <lastModified> <length> <SHA-1> <path>
+# Encoding is UTF-8
+1354667562000 773 7ad51a2adfb34cbb0dbb8152a2981438227f8871 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res/layout/main.xml
+1354667562000 82 de28083e8f2df3558ca48351d7ea9bd20e6ebb40 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res/xml/device_filter.xml
+1354667562000 4057 79295dce556fb12db29b61cfe757da397507a418 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res/drawable/icon.png
+1354667562000 111 03b5cf83955e88f46ec063c2c099245fcc2dd6d6 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/res/values/strings.xml

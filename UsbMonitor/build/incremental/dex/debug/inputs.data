@@ -1,0 +1,13 @@
+# incremental data. DO NOT EDIT.
+# format is <lastModified> <length> <SHA-1> <path>
+# Encoding is UTF-8
+1377575457000 410 589599abdee1478ddd3d2451501ca5c3d3b7d0ef /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/R$string.class
+1377575457000 352 cc098d8b3191b82e512a8a99c1e65007ba041391 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/R$attr.class
+1377575457000 353 fb9f060706b3232db7d70b55a7f8cd1cf4f191e6 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/BuildConfig.class
+1377575457000 611 5423e85cdc0c6b5e3af4f7e060f5de773ffcb662 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/R.class
+1377575457000 472 6cea16d3185edbc8fc037308f6b3f5b4ef9be7d4 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/R$id.class
+1377575457000 412 feda6bfbe6002ec3d43867c55bde26c16ae84357 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/R$drawable.class
+1377575457000 9150 48e5ba05c30509870f9eacbbf550ac6c48c9c513 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/USBActivity.class
+1377575457000 1762 44aa49368d5e3b913b727069b5224ed4d1b02578 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/USBActivity$1.class
+1377575457000 406 536a9bb5b718a0aef8471a1164208b0d44ec9eee /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/R$xml.class
+1377575457000 406 068c4c9cd87c198a63cf69d7babc65e0c1b75cd5 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/UsbMonitor/build/classes/debug/com/example/UsbMonitor/R$layout.class

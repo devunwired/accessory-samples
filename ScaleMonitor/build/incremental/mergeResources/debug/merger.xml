@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger>
+
+    <dataSet config="main" >
+        <source path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/res" >
+            <file
+                name="launcher"
+                path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/res/layout/launcher.xml"
+                qualifiers=""
+                type="layout" />
+            <file
+                path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/res/values/strings.xml"
+                qualifiers="" >
+                <string name="fire" >Fire!
+                </string>
+            </file>
+            <file
+                name="device_filter"
+                path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/res/xml/device_filter.xml"
+                qualifiers=""
+                type="xml" />
+        </source>
+        <source path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/res/rs/debug" />
+    </dataSet>
+    <dataSet config="debug" >
+        <source path="/Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/src/debug/res" />
+    </dataSet>
+
+</merger>

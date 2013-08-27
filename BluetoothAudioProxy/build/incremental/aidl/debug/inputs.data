@@ -1,0 +1,5 @@
+# incremental data. DO NOT EDIT.
+# format is <lastModified> <length> <SHA-1> <path>
+# Encoding is UTF-8
+1369793861000 5219 1fed1b07c627607c854b1ea32fadddcf113ac241 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/BluetoothAudioProxy/src/com/example/BluetoothAudioProxy/BluetoothActivity.java
+1369280708000 8183 37519dce478a7a30c7e26d514548759cfec16d13 /Users/davesmith/Documents/AndroidProjects/AccessorySamples/BluetoothAudioProxy/src/com/example/BluetoothAudioProxy/HeadsetService.java
