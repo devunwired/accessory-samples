@@ -119,6 +119,11 @@ public class MainBluetoothActivity extends GameActivity implements Runnable {
         enableControls(true);
     }
 
+    /*
+     * This receiver will log out the lower level ACL connection events, Android will not
+     * auto-connect a paired device for us, so these events will only come as a result of
+     * use initiating and tearing down the connection, but they are still interesting to watch
+     */
     private BroadcastReceiver mAclConnectReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
