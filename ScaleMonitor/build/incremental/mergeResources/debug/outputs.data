@@ -1,6 +1,0 @@
-# incremental data. DO NOT EDIT.
-# format is <lastModified> <length> <SHA-1> <path>
-# Encoding is UTF-8
-1377575455000 930 473ef77e5a86e1ba3305e6c20f863a7d76aed2df /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/res/all/debug/xml/device_filter.xml
-1377575455000 225 20341307ec34ccdd5a46e300b94b5d2725412cca /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/res/all/debug/values/values.xml
-1377575455000 1830 127928e1793cd7c5a597ebda10f8666433e800af /Users/davesmith/Documents/AndroidProjects/AccessorySamples/ScaleMonitor/build/res/all/debug/layout/launcher.xml
