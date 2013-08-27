@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -30,6 +31,15 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
             //Bluetooth is disabled
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivity(enableBtIntent);
+            finish();
+            return;
+        }
+
+        //Check for Bluetooth LE Support.  In production, our manifest entry will keep this
+        // from installing on these devices, but this will allow test devices or other
+        // sideloads to report whether or not the feature exists.
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, "No LE Support.", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
