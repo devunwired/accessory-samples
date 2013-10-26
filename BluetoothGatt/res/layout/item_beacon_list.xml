@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="?android:attr/listPreferredItemHeight"
+    android:orientation="horizontal">
+    <TextView
+        android:id="@+id/text_name"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textAppearance="?android:attr/textAppearanceListItem"
+        android:textStyle="bold"/>
+    <TextView
+        android:id="@+id/text_temperature"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textAppearance="?android:attr/textAppearanceListItem"
+        android:textStyle="bold"/>
+    <TextView
+        android:id="@+id/text_address"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:textAppearance="?android:attr/textAppearanceListItem"
+        android:gravity="center"/>
+    <TextView
+        android:id="@+id/text_rssi"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:textAppearance="?android:attr/textAppearanceListItem"
+        android:gravity="center"/>
+</LinearLayout>

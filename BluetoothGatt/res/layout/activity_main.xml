@@ -1,11 +1,52 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context=".MainActivity">
-
-</RelativeLayout>
+    android:stretchColumns="*">
+    <TextView
+        android:padding="@dimen/activity_horizontal_margin"
+        android:gravity="center_horizontal"
+        android:textSize="42sp"
+        android:text="Android Weather Station"/>
+    <TableRow>
+        <TextView
+            android:id="@+id/text_temperature"
+            android:layout_column="0"
+            android:textSize="@dimen/measurement_text_size"
+            android:gravity="center_horizontal"/>
+        <TextView
+            android:layout_column="2"
+            android:id="@+id/text_pressure"
+            android:textSize="@dimen/measurement_text_size"
+            android:gravity="center_horizontal"/>
+    </TableRow>
+    <TableRow>
+        <TextView
+            android:layout_column="0"
+            android:textSize="@dimen/label_text_size"
+            android:gravity="center_horizontal"
+            android:text="Ambient Temperature"/>
+        <TextView
+            android:layout_column="2"
+            android:textSize="@dimen/label_text_size"
+            android:gravity="center_horizontal"
+            android:text="Barometric Pressure"/>
+    </TableRow>
+    <TableRow>
+        <TextView
+            android:id="@+id/text_humidity"
+            android:layout_column="1"
+            android:textSize="@dimen/measurement_text_size"
+            android:gravity="center_horizontal"/>
+    </TableRow>
+    <TableRow>
+        <TextView
+            android:layout_column="1"
+            android:textSize="@dimen/label_text_size"
+            android:gravity="center_horizontal"
+            android:text="Humidity"/>
+    </TableRow>
+</TableLayout>
