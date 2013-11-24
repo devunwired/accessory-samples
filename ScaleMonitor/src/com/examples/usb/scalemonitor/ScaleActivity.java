@@ -315,6 +315,7 @@ public class ScaleActivity extends Activity implements Runnable {
             switch (msg.what) {
             case MSG_DATA:
                 byte[] data = (byte[]) msg.obj;
+
                 //This value will always be 0x03 for the data report
                 byte reportId = data[0];
                 //Maps to a status constant defined for HID POS
@@ -462,10 +463,13 @@ public class ScaleActivity extends Activity implements Runnable {
         request.initialize(mConnection, mEndpointIntr);
         while (mRunning) {
             // queue a request on the interrupt endpoint
-            request.queue(buffer, 8);
+            boolean success = request.queue(buffer, 8);
+            if (!success) {
+                Log.w("UsbScaleMonitor", "Unsuccessful Request Queue");
+            }
             // wait for new data
             if (mConnection.requestWait() == request) {
-                byte[] raw = new byte[6];
+                byte[] raw = new byte[buffer.remaining()];
                 buffer.get(raw);
                 buffer.clear();
 
