@@ -293,6 +293,8 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                             .getCharacteristic(HUMIDITY_DATA_CHAR);
                     break;
                 default:
+                    mHandler.sendEmptyMessage(MSG_DISMISS);
+                    Log.i(TAG, "All Sensors Enabled");
                     return;
             }
 
@@ -321,7 +323,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                     Log.d(TAG, "Set notify humidity");
                     characteristic = gatt.getService(HUMIDITY_SERVICE)
                             .getCharacteristic(HUMIDITY_DATA_CHAR);
-                    return;
+                    break;
                 default:
                     mHandler.sendEmptyMessage(MSG_DISMISS);
                     Log.i(TAG, "All Sensors Enabled");
