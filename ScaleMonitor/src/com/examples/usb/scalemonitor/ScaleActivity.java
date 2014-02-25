@@ -25,7 +25,6 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
-import android.hardware.usb.UsbRequest;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -33,9 +32,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 public class ScaleActivity extends Activity implements Runnable {
@@ -49,7 +46,9 @@ public class ScaleActivity extends Activity implements Runnable {
 
     private TextView mWeight, mStatus, mAttributes;
     private PendingIntent mPermissionIntent;
-    
+
+    private int mWeightLimit;
+
     private UsbManager mUsbManager;
     private UsbDevice mDevice;
     private UsbDeviceConnection mConnection;
@@ -156,7 +155,7 @@ public class ScaleActivity extends Activity implements Runnable {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
             //If our device is detached, disconnect
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 Log.i(TAG, "Device Detached");
@@ -219,13 +218,13 @@ public class ScaleActivity extends Activity implements Runnable {
     }
     
     // Value is the number of oz. times 100
-    private static final int POUNDS_PER_OZ = 160; // 16lb per 0.1oz
+    private static final int OZ_PER_POUND = 160; // 16oz per 0.1lb
     private void updateWeightPounds(int weight) {
         String result;
 
-        if (weight >= POUNDS_PER_OZ) {
-            float pounds = weight / POUNDS_PER_OZ;
-            float remainder = (weight % POUNDS_PER_OZ) / 10.0f;
+        if (weight >= OZ_PER_POUND) {
+            float pounds = weight / OZ_PER_POUND;
+            float remainder = (weight % OZ_PER_POUND) / 10.0f;
             result = String.format("%.0f lb, %.1f oz", pounds, remainder);
         } else {
             float ounces = weight / 10.0f;
@@ -291,22 +290,30 @@ public class ScaleActivity extends Activity implements Runnable {
 
         UsbDeviceConnection connection = mUsbManager.openDevice(device);
         if (connection != null && connection.claimInterface(intf, true)) {
-            //Start the polling thread
-            Toast.makeText(this, "open SUCCESS", Toast.LENGTH_SHORT).show();
             mConnection = connection;
-            mRunning = true;
-            Thread thread = new Thread(null, this, "ScaleMonitor");
-            thread.start();
 
             //Get scale attributes
             updateAttributesData(mConnection);
             //Update the weight limit information
             updateLimitData(mConnection);
+
+            //Start the polling thread
+            mRunning = true;
+            Thread thread = new Thread(null, this, "ScaleMonitor");
+            thread.start();
         } else {
-            Toast.makeText(this, "open FAIL", Toast.LENGTH_SHORT).show();
             mConnection = null;
             mRunning = false;
         }
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for(byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+
+        return sb.toString();
     }
 
     private static final int MSG_DATA = 101;
@@ -315,6 +322,7 @@ public class ScaleActivity extends Activity implements Runnable {
             switch (msg.what) {
             case MSG_DATA:
                 byte[] data = (byte[]) msg.obj;
+                Log.d(TAG, "Raw: "+bytesToHex(data));
 
                 //This value will always be 0x03 for the data report
                 byte reportId = data[0];
@@ -331,6 +339,12 @@ public class ScaleActivity extends Activity implements Runnable {
                 //Two byte value representing the weight itself
                 int weight = (data[5] & 0xFF) << 8;
                 weight += (data[4] & 0xFF);
+
+                //Validate result
+                if (mWeightLimit > 0 && weight > mWeightLimit) {
+                    mWeight.setText("---");
+                    return;
+                }
 
                 switch (units) {
                     case UNITS_GRAM:
@@ -354,6 +368,24 @@ public class ScaleActivity extends Activity implements Runnable {
         mHandler.sendMessage(Message.obtain(mHandler, MSG_DATA, data));
     }
 
+    /*
+     * Get the current measurement for the scale by requesting a
+     * Scale Data Input Report
+     */
+    private void updateWeightData(UsbDeviceConnection connection, byte[] buffer) {
+        int requestType = 0xA1; // 1010 0001b
+        int request = 0x01; //HID GET_REPORT
+        int value = 0x0103; //Input report, ID = 3
+        int index = 0; //Interface 0
+        int length = 6;
+
+        connection.controlTransfer(requestType, request, value, index, buffer, length, 2000);
+    }
+
+    /*
+     * Get the attribute information for the scale by requesting a
+     * Scale Attributes Feature Report
+     */
     private void updateAttributesData(UsbDeviceConnection connection) {
         int requestType = 0xA1; // 1010 0001b
         int request = 0x01; //HID GET_REPORT
@@ -371,7 +403,9 @@ public class ScaleActivity extends Activity implements Runnable {
         //Maps to a units constant defined for HID POS
         int defaultUnits = (buffer[2] & 0xFF);
 
-        mAttributes.setText(String.format("Class: %d, Default Units: %s", scaleClass, getUnitDisplayString(defaultUnits)));
+        String message = String.format("Class: %d, Default Units: %s", scaleClass, getUnitDisplayString(defaultUnits));
+        Log.d(TAG, message);
+        mAttributes.setText(message);
     }
 
     /*
@@ -398,8 +432,11 @@ public class ScaleActivity extends Activity implements Runnable {
         //Two byte value representing the weight itself
         int weight = (buffer[4] & 0xFF) << 8;
         weight += (buffer[3] & 0xFF);
+        mWeightLimit = weight;
 
-        mStatus.setText(String.format("Weight Limit: %d %s", weight, getUnitDisplayString(unit)));
+        String message = String.format("Weight Limit: %d %s", weight, getUnitDisplayString(unit));
+        Log.d(TAG, message);
+        mStatus.setText(message);
     }
 
     /*
@@ -458,30 +495,15 @@ public class ScaleActivity extends Activity implements Runnable {
      */
     @Override
     public void run() {
-        ByteBuffer buffer = ByteBuffer.allocate(8);
-        UsbRequest request = new UsbRequest();
-        request.initialize(mConnection, mEndpointIntr);
+        byte[] buffer = new byte[6];
         while (mRunning) {
-            // queue a request on the interrupt endpoint
-            boolean success = request.queue(buffer, 8);
-            if (!success) {
-                Log.w("UsbScaleMonitor", "Unsuccessful Request Queue");
-            }
-            // wait for new data
-            if (mConnection.requestWait() == request) {
-                byte[] raw = new byte[buffer.remaining()];
-                buffer.get(raw);
-                buffer.clear();
+            updateWeightData(mConnection, buffer);
+            postWeightData(buffer);
 
-                postWeightData(raw);
-
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                }
-            } else {
-                Log.e(TAG, "requestWait failed, exiting");
-                break;
+            try {
+                Thread.sleep(25);
+            } catch (InterruptedException e) {
+                Log.w(TAG, "Read Interrupted");
             }
         }
     }
