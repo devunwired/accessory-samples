@@ -167,7 +167,7 @@ public class MainActivity extends Activity implements BluetoothAdapter.LeScanCal
                  * Make a connection with the device using the special LE-specific
                  * connectGatt() method, passing in a callback for GATT events
                  */
-                mConnectedGatt = device.connectGatt(this, true, mGattCallback);
+                mConnectedGatt = device.connectGatt(this, false, mGattCallback);
                 //Display progress UI
                 mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to "+device.getName()+"..."));
                 return super.onOptionsItemSelected(item);
