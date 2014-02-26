@@ -14,10 +14,12 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
-import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
+import android.graphics.Shader;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -160,13 +162,13 @@ public abstract class GameActivity extends Activity {
     private class GameThread extends Thread implements SurfaceHolder.Callback {
         
         private SurfaceHolder mHolder;
-        private Bitmap mBackground, mPlayer, mGem;
+        private BitmapDrawable mBackground;
+        private Drawable mPlayer, mGem;
         private Paint mPaint;        
         
         private int mMaxPlayerX, mMaxPlayerY;
         private int mMaxGemX, mMaxGemY;
         private int mSurfaceWidth, mSurfaceHeight;
-        private Point mPlayerLocation, mGemLocation;
         
         private ColorFilter mPlayerFilter;
         private boolean mUseFilter = false;
@@ -174,38 +176,40 @@ public abstract class GameActivity extends Activity {
         public GameThread(Context context, SurfaceView drawSurface) {
             super();
             drawSurface.getHolder().addCallback(this);
-            mBackground = BitmapFactory.decodeResource(context.getResources(), R.drawable.background_holo_dark);
-            mPlayer = BitmapFactory.decodeResource(context.getResources(), R.drawable.player);
-            mGem = BitmapFactory.decodeResource(context.getResources(), R.drawable.ruby);
-            
-            mPlayerLocation = new Point(0, 0);
-            mGemLocation = new Point(0, 0);
+            Bitmap background = BitmapFactory.decodeResource(context.getResources(), R.drawable.background_holo_dark);
+            mBackground = new BitmapDrawable(context.getResources(), background);
+            mBackground.setTileModeXY(Shader.TileMode.REPEAT, Shader.TileMode.REPEAT);
+
+            mPlayer = context.getResources().getDrawable(R.drawable.player);
+            mPlayer.setBounds(0, 0, mPlayer.getIntrinsicWidth(), mPlayer.getIntrinsicHeight());
+            mGem = context.getResources().getDrawable(R.drawable.ruby);
+            mGem.setBounds(0, 0, mGem.getIntrinsicWidth(), mGem.getIntrinsicHeight());
             
             mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             mPlayerFilter = new PorterDuffColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
         }
         
         public void movePlayer(int x, int y) {
-            mPlayerLocation.x += x;
-            mPlayerLocation.y += y;
+            final Rect currentPlayer = mPlayer.getBounds();
+            int newX = currentPlayer.left + x;
+            int newY = currentPlayer.top + y;
             
             //Check Bounds
-            if(mPlayerLocation.x < 0) mPlayerLocation.x = 0;
-            if(mPlayerLocation.y < 0) mPlayerLocation.y = 0;
-            if(mPlayerLocation.x > mMaxPlayerX) mPlayerLocation.x = mMaxPlayerX;
-            if(mPlayerLocation.y > mMaxPlayerY) mPlayerLocation.y = mMaxPlayerY;
+            if(newX < 0) newX = 0;
+            if(newY < 0) newY = 0;
+            if(newX > mMaxPlayerX) newX = mMaxPlayerX;
+            if(newY > mMaxPlayerY) newY = mMaxPlayerY;
+
+            mPlayer.setBounds(newX,
+                    newY,
+                    newX + currentPlayer.width(),
+                    newY + currentPlayer.height());
         }
         
         public boolean attemptPickup() {
             //Check if player is touching gem
-            Rect player = new Rect(mPlayerLocation.x,
-                    mPlayerLocation.y,
-                    mPlayerLocation.x + mPlayer.getWidth(),
-                    mPlayerLocation.y + mPlayer.getHeight());
-            Rect gem = new Rect(mGemLocation.x,
-                    mGemLocation.y,
-                    mGemLocation.x + mGem.getWidth(),
-                    mGemLocation.y + mGem.getHeight());
+            final Rect player = mPlayer.getBounds();
+            final Rect gem = mGem.getBounds();
             
             boolean success = Rect.intersects(player, gem);
             if(success) {
@@ -221,14 +225,20 @@ public abstract class GameActivity extends Activity {
         
         private void resetGemLocation() {
             double seed = Math.random();
-            mGemLocation.x = (int)(mSurfaceWidth * seed);
-            mGemLocation.y = (int)(mSurfaceHeight * seed);
+            int newX = (int)(mSurfaceWidth * seed);
+            int newY = (int)(mSurfaceHeight * seed);
             
             //Check Bounds
-            if(mGemLocation.x < 0) mGemLocation.x = 0;
-            if(mGemLocation.y < 0) mGemLocation.y = 0;
-            if(mGemLocation.x > mMaxGemX) mGemLocation.x = mMaxGemX;
-            if(mGemLocation.y > mMaxGemY) mGemLocation.y = mMaxGemY;
+            if(newX < 0) newX = 0;
+            if(newY < 0) newY = 0;
+            if(newX > mMaxGemX) newX = mMaxGemX;
+            if(newY > mMaxGemY) newY = mMaxGemY;
+
+            final Rect currentGem = mGem.getBounds();
+            mGem.setBounds(newX,
+                    newY,
+                    newX + currentGem.width(),
+                    newY + currentGem.height());
         }
         
         @Override
@@ -241,13 +251,13 @@ public abstract class GameActivity extends Activity {
                 try {
                     Canvas c = mHolder.lockCanvas();
                     
-                    c.drawBitmap(mBackground, 0, 0, mPaint);
+                    mBackground.draw(c);
                     
-                    c.drawBitmap(mGem, mGemLocation.x, mGemLocation.y, mPaint);
-                    
-                    mPaint.setColorFilter(mUseFilter ? mPlayerFilter : null);
-                    c.drawBitmap(mPlayer, mPlayerLocation.x, mPlayerLocation.y, mPaint);                    
-                    mPaint.setColorFilter(null);
+                    mGem.draw(c);
+
+                    mPlayer.setColorFilter(mUseFilter ? mPlayerFilter : null);
+                    mPlayer.draw(c);
+                    mPlayer.setColorFilter(null);
                     
                     mHolder.unlockCanvasAndPost(c);
                 } catch (Exception e) {
@@ -258,14 +268,16 @@ public abstract class GameActivity extends Activity {
 
         @Override
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            mMaxPlayerX = width - mPlayer.getWidth();
-            mMaxPlayerY = height - mPlayer.getHeight();
+            mMaxPlayerX = width - mPlayer.getBounds().width();
+            mMaxPlayerY = height - mPlayer.getBounds().height();
             
-            mMaxGemX = width - mGem.getWidth();
-            mMaxGemY = height - mGem.getHeight();
+            mMaxGemX = width - mGem.getBounds().width();
+            mMaxGemY = height - mGem.getBounds().height();
             
             mSurfaceWidth = width;
             mSurfaceHeight = height;
+            mBackground.setBounds(0, 0, width, height);
+
             resetGemLocation();
         }
 

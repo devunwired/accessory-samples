@@ -20,7 +20,7 @@
         <activity
             android:name=".MainUsbActivity"
             android:label="Accessory Controller"
-            android:screenOrientation="portrait" >
+            android:screenOrientation="landscape" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -36,7 +36,7 @@
         <activity
             android:name=".MainBluetoothActivity"
             android:label="Bluetooth Controller"
-            android:screenOrientation="portrait" >
+            android:screenOrientation="landscape" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -36,7 +36,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:textColor="@android:color/white"
-        android:textSize="240dp"
+        android:textSize="120dp"
         android:textStyle="bold"
         android:text="---" />
 
