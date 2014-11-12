@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <bool name="use_kitkat">false</bool>
+    <bool name="use_lollipop">true</bool>
+</resources>

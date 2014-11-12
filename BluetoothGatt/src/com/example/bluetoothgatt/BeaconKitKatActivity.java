@@ -31,7 +31,7 @@ import java.util.UUID;
  * Double Encore, Inc.
  * BeaconActivity
  */
-public class BeaconActivity extends Activity implements BluetoothAdapter.LeScanCallback {
+public class BeaconKitKatActivity extends Activity implements BluetoothAdapter.LeScanCallback {
     private static final String TAG = "BeaconActivity";
 
     /* Full Bluetooth UUID that defines the Health Thermometer Service */

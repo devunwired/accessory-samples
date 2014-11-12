@@ -73,7 +73,7 @@ public class MainUsbActivity extends GameActivity implements Runnable {
 				synchronized (mUsbReceiver) {
 					if (!mPermissionRequestPending) {
 						mUsbManager.requestPermission(accessory,
-								mPermissionIntent);
+                                mPermissionIntent);
 						mPermissionRequestPending = true;
 					}
 				}

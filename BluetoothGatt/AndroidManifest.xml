@@ -6,10 +6,6 @@
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
 
-    <uses-sdk
-        android:minSdkVersion="18"
-        android:targetSdkVersion="18" />
-
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
 
@@ -27,9 +23,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".BeaconActivity"
+
+        <activity android:name=".BeaconKitKatActivity"
             android:label="Beacon Monitor"
-            android:screenOrientation="landscape">
+            android:screenOrientation="landscape"
+            android:enabled="@bool/use_kitkat">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".BeaconLollipopActivity"
+            android:label="Beacon Monitor"
+            android:screenOrientation="landscape"
+            android:enabled="@bool/use_lollipop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
