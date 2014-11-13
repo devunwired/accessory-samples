@@ -34,7 +34,11 @@ class TemperatureBeacon {
         mName = record.getDeviceName();
 
         byte[] data = record.getServiceData(THERM_SERVICE);
-        mCurrentTemp = parseTemp(data);
+        if (data != null) {
+            mCurrentTemp = parseTemp(data);
+        } else {
+            mCurrentTemp = 0f;
+        }
     }
 
     /* Builder for pre-Lollipop */
