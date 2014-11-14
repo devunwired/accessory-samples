@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">BluetoothGattPeripheral</string>
+    <string name="label_peripheral">GATT Peripheral</string>
+    <string name="label_client">GATT Client</string>
+</resources>
