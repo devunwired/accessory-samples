@@ -12,6 +12,9 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.util.Log;
+import android.view.View;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 /**
@@ -19,8 +22,9 @@ import android.widget.Toast;
  * Date: 11/12/14
  * AdvertiserActivity
  */
-public class AdvertiserActivity extends Activity {
+public class AdvertiserActivity extends Activity implements SeekBar.OnSeekBarChangeListener {
     private static final String TAG = "AdvertiseActivity";
+    private static final int DEFAULT_VALUE = 20;
 
     /* Full Bluetooth UUID that defines the Health Thermometer Service */
     public static final ParcelUuid THERM_SERVICE = ParcelUuid.fromString("00001809-0000-1000-8000-00805f9b34fb");
@@ -28,9 +32,21 @@ public class AdvertiserActivity extends Activity {
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
 
+    /* UI to control advertise value */
+    private TextView mCurrentValue;
+    private SeekBar mSlider;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_advertiser);
+
+        mCurrentValue = (TextView) findViewById(R.id.current);
+        mSlider = (SeekBar) findViewById(R.id.slider);
+
+        mSlider.setMax(100);
+        mSlider.setOnSeekBarChangeListener(this);
+        mSlider.setProgress(DEFAULT_VALUE);
 
         /*
          * Bluetooth in Android 4.3+ is accessed via the BluetoothManager, rather than
@@ -92,7 +108,7 @@ public class AdvertiserActivity extends Activity {
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
                 .setConnectable(false)
-                .setTimeout(30000)
+                .setTimeout(0)
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
                 .build();
 
@@ -100,7 +116,7 @@ public class AdvertiserActivity extends Activity {
                 .setIncludeDeviceName(true)
                 .setIncludeTxPowerLevel(true)
                 .addServiceUuid(THERM_SERVICE)
-                .addServiceData(THERM_SERVICE, new byte[] {0x16, 0x00})
+                .addServiceData(THERM_SERVICE, buildTempPacket())
                 .build();
 
         mBluetoothLeAdvertiser.startAdvertising(settings, data, mAdvertiseCallback);
@@ -110,6 +126,22 @@ public class AdvertiserActivity extends Activity {
         if (mBluetoothLeAdvertiser == null) return;
 
         mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
+    }
+
+    private void restartAdvertising() {
+        stopAdvertising();
+        startAdvertising();
+    }
+
+    private byte[] buildTempPacket() {
+        int value;
+        try {
+            value = Integer.parseInt(mCurrentValue.getText().toString());
+        } catch (NumberFormatException e) {
+            value = 0;
+        }
+
+        return new byte[] {(byte)value, 0x00};
     }
 
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
@@ -123,4 +155,27 @@ public class AdvertiserActivity extends Activity {
             Log.w(TAG, "LE Advertise Failed: "+errorCode);
         }
     };
+
+    /** Click handler to update advertisement data */
+
+    public void onUpdateClick(View v) {
+        restartAdvertising();
+    }
+
+    /** Callbacks to update UI when slider changes */
+
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        mCurrentValue.setText(String.valueOf(progress));
+    }
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+
+    }
 }

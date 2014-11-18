@@ -20,11 +20,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.ParcelUuid;
 import android.util.Log;
-import android.view.Gravity;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.ArrayList;
 
 /**
  * Dave Smith
@@ -39,6 +39,7 @@ public class PeripheralActivity extends Activity {
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
     private BluetoothGattServer mGattServer;
 
+    private ArrayList<BluetoothDevice> mConnectedDevices;
     private ArrayAdapter<BluetoothDevice> mConnectedDevicesAdapter;
 
     @Override
@@ -47,7 +48,8 @@ public class PeripheralActivity extends Activity {
         ListView list = new ListView(this);
         setContentView(list);
 
-        mConnectedDevicesAdapter = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_list_item_1);
+        mConnectedDevices = new ArrayList<BluetoothDevice>();
+        mConnectedDevicesAdapter = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_list_item_1, mConnectedDevices);
         list.setAdapter(mConnectedDevicesAdapter);
 
         /*
@@ -137,7 +139,6 @@ public class PeripheralActivity extends Activity {
             Log.i(TAG, "onConnectionStateChange "
                     +DeviceProfile.getStatusDescription(status)+" "
                     +DeviceProfile.getStateDescription(newState));
-            String deviceString = String.format("%s :: %s, %d :: %d", device.getName(), device.getAddress(), device.getType(), device.getBluetoothClass().getDeviceClass());
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 postDeviceChange(device, true);
 
@@ -241,6 +242,7 @@ public class PeripheralActivity extends Activity {
         mHandler.post(new Runnable() {
             @Override
             public void run() {
+                //This will add the item to our list and update the adapter at the same time.
                 if (toAdd) {
                     mConnectedDevicesAdapter.add(device);
                 } else {
@@ -248,5 +250,23 @@ public class PeripheralActivity extends Activity {
                 }
             }
         });
+    }
+
+    /* Storage and access to local characteristic data */
+
+    private Object mLock = new Object();
+
+    private String mStoredValue;
+
+    private String getStoredValue() {
+        synchronized (mLock) {
+            return mStoredValue;
+        }
+    }
+
+    private void setStoredValue(String newValue) {
+        synchronized (mLock) {
+            mStoredValue = newValue;
+        }
     }
 }

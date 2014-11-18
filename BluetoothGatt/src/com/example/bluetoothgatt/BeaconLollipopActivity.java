@@ -173,7 +173,7 @@ public class BeaconLollipopActivity extends Activity {
         @Override
         public void handleMessage(Message msg) {
             TemperatureBeacon beacon = (TemperatureBeacon) msg.obj;
-            mBeacons.put(beacon.getAddress(), beacon);
+            mBeacons.put(beacon.getName(), beacon);
 
             mAdapter.setNotifyOnChange(false);
             mAdapter.clear();
