@@ -160,7 +160,9 @@ public class BeaconLollipopActivity extends Activity {
              * Create a new beacon from the list of obtains AD structures
              * and pass it up to the main thread
              */
-            TemperatureBeacon beacon = new TemperatureBeacon(result.getScanRecord(), result.getDevice().getAddress(), result.getRssi());
+            TemperatureBeacon beacon = new TemperatureBeacon(result.getScanRecord(),
+                    result.getDevice().getAddress(),
+                    result.getRssi());
             mHandler.sendMessage(Message.obtain(null, 0, beacon));
         }
     };

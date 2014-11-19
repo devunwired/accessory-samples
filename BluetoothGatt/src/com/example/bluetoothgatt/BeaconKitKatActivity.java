@@ -34,9 +34,6 @@ import java.util.UUID;
 public class BeaconKitKatActivity extends Activity implements BluetoothAdapter.LeScanCallback {
     private static final String TAG = "BeaconActivity";
 
-    /* Full Bluetooth UUID that defines the Health Thermometer Service */
-    private static final UUID THERM_SERVICE = UUID.fromString("00001809-0000-1000-8000-00805f9b34fb");
-
     private BluetoothAdapter mBluetoothAdapter;
     /* Collect unique devices discovered, keyed by address */
     private HashMap<String, TemperatureBeacon> mBeacons;
@@ -121,7 +118,7 @@ public class BeaconKitKatActivity extends Activity implements BluetoothAdapter.L
 
     private void startScan() {
         //Scan for devices advertising the thermometer service
-        mBluetoothAdapter.startLeScan(new UUID[] {THERM_SERVICE}, this);
+        mBluetoothAdapter.startLeScan(new UUID[] {TemperatureBeacon.THERM_SERVICE.getUuid()}, this);
         setProgressBarIndeterminateVisibility(true);
 
         mHandler.postDelayed(mStopRunnable, 5000);
