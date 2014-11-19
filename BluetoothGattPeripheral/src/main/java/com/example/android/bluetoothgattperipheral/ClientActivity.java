@@ -1,10 +1,12 @@
 package com.example.android.bluetoothgattperipheral;
 
 import android.app.Activity;
+import android.app.TimePickerDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -15,15 +17,20 @@ import android.bluetooth.le.ScanSettings;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -41,9 +48,17 @@ public class ClientActivity extends Activity {
 
     private BluetoothGatt mConnectedGatt;
 
+    private Handler mHandler = new Handler();
+
+    /* Client UI elements */
+    private TextView mLatestValue;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_client);
+
+        mLatestValue = (TextView) findViewById(R.id.latest_value);
 
         /*
          * Bluetooth in Android 4.3+ is accessed via the BluetoothManager, rather than
@@ -128,6 +143,48 @@ public class ClientActivity extends Activity {
         }
     }
 
+    /*
+     * Select a new time to set as the base offset
+     * on the GATT Server. Then write to the characteristic.
+     */
+    public void onUpdateClick(View v) {
+        if (mConnectedGatt != null) {
+            final Calendar now = Calendar.getInstance();
+            TimePickerDialog dialog = new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
+                @Override
+                public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                    now.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                    now.set(Calendar.MINUTE, minute);
+                    now.set(Calendar.SECOND, 0);
+                    now.set(Calendar.MILLISECOND, 0);
+
+                    BluetoothGattCharacteristic characteristic = mConnectedGatt
+                            .getService(DeviceProfile.SERVICE_UUID)
+                            .getCharacteristic(DeviceProfile.CHARACTERISTIC_WRITE_UUID);
+                    byte[] value = DeviceProfile.bytesFromInt((int)(now.getTimeInMillis()/1000));
+                    Log.d(TAG, "Writing value of size "+value.length);
+                    characteristic.setValue(value);
+
+                    mConnectedGatt.writeCharacteristic(characteristic);
+                }
+            }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), false);
+            dialog.show();
+        }
+    }
+
+    /*
+     * Retrieve the current value of the time offset
+     */
+    public void onGetOffsetClick(View v) {
+        if (mConnectedGatt != null) {
+            BluetoothGattCharacteristic characteristic = mConnectedGatt
+                    .getService(DeviceProfile.SERVICE_UUID)
+                    .getCharacteristic(DeviceProfile.CHARACTERISTIC_WRITE_UUID);
+
+            mConnectedGatt.readCharacteristic(characteristic);
+        }
+    }
+
     private void startScan() {
         //Scan for devices advertising our custom service
         ScanFilter beaconFilter = new ScanFilter.Builder()
@@ -197,7 +254,52 @@ public class ClientActivity extends Activity {
             Log.d(TAG, "onServicesDiscovered:");
             for (BluetoothGattService service : gatt.getServices()) {
                 Log.d(TAG, "Service: "+service.getUuid());
+
+                if (DeviceProfile.SERVICE_UUID.equals(service.getUuid())) {
+                    //Read the current characteristic's value
+                    gatt.readCharacteristic(service.getCharacteristic(DeviceProfile.CHARACTERISTIC_READ_UUID));
+                }
             }
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicRead(gatt, characteristic, status);
+            final int charValue = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
+
+            if (DeviceProfile.CHARACTERISTIC_READ_UUID.equals(characteristic.getUuid())) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mLatestValue.setText(String.valueOf(charValue));
+                    }
+                });
+
+                //Register for further updates as notifications
+                gatt.setCharacteristicNotification(characteristic, true);
+            }
+
+            if (DeviceProfile.CHARACTERISTIC_WRITE_UUID.equals(characteristic.getUuid())) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(ClientActivity.this, "Current Offset is "+charValue, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
+            Log.i(TAG, "Notification of time characteristic changed on server.");
+            final int charValue = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mLatestValue.setText(String.valueOf(charValue));
+                }
+            });
         }
     };
 }

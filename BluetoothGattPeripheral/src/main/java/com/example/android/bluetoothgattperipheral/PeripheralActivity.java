@@ -3,6 +3,7 @@ package com.example.android.bluetoothgattperipheral;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattServer;
@@ -24,6 +25,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 
 /**
@@ -117,8 +120,8 @@ public class PeripheralActivity extends Activity {
                 BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY,
                 BluetoothGattCharacteristic.PERMISSION_READ);
         BluetoothGattCharacteristic writeCharacteristic = new BluetoothGattCharacteristic(DeviceProfile.CHARACTERISTIC_WRITE_UUID,
-                BluetoothGattCharacteristic.PROPERTY_WRITE,
-                BluetoothGattCharacteristic.PERMISSION_WRITE);
+                BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE,
+                BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
 
         service.addCharacteristic(readCharacteristic);
         service.addCharacteristic(writeCharacteristic);
@@ -127,10 +130,20 @@ public class PeripheralActivity extends Activity {
     }
 
     private void shutdownServer() {
+        mHandler.removeCallbacks(mNotifyRunnable);
+
         if (mGattServer == null) return;
 
         mGattServer.close();
     }
+
+    private Runnable mNotifyRunnable = new Runnable() {
+        @Override
+        public void run() {
+            notifyConnectedDevices();
+            mHandler.postDelayed(this, 2000);
+        }
+    };
 
     private BluetoothGattServerCallback mGattServerCallback = new BluetoothGattServerCallback() {
         @Override
@@ -157,30 +170,56 @@ public class PeripheralActivity extends Activity {
         public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
             Log.i(TAG, "onCharacteristicReadRequest " + characteristic.getUuid().toString());
+
+            if (DeviceProfile.CHARACTERISTIC_READ_UUID.equals(characteristic.getUuid())) {
+                mGattServer.sendResponse(device,
+                        requestId,
+                        BluetoothGatt.GATT_SUCCESS,
+                        0,
+                        getStoredValue());
+            }
+
+            if (DeviceProfile.CHARACTERISTIC_WRITE_UUID.equals(characteristic.getUuid())) {
+                mGattServer.sendResponse(device,
+                        requestId,
+                        BluetoothGatt.GATT_SUCCESS,
+                        0,
+                        DeviceProfile.bytesFromInt(mTimeOffset));
+            }
+
+            //Anything else, we don't know how to handle!
+            mGattServer.sendResponse(device,
+                    requestId,
+                    BluetoothGatt.GATT_FAILURE,
+                    0,
+                    null);
         }
 
         @Override
         public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value);
-            Log.i(TAG, "onCharacteristicWriteRequest"+characteristic.getUuid().toString());
-        }
+            Log.i(TAG, "onCharacteristicWriteRequest "+characteristic.getUuid().toString());
+            if (DeviceProfile.CHARACTERISTIC_WRITE_UUID.equals(characteristic.getUuid())) {
+                int newOffset = DeviceProfile.unsignedIntFromBytes(value);
+                setStoredValue(newOffset);
 
-        @Override
-        public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
-            super.onDescriptorReadRequest(device, requestId, offset, descriptor);
-            Log.i(TAG, "onDescriptorReadRequest "+descriptor.getUuid().toString());
-        }
+                if (responseNeeded) {
+                    mGattServer.sendResponse(device,
+                            requestId,
+                            BluetoothGatt.GATT_SUCCESS,
+                            0,
+                            value);
+                }
 
-        @Override
-        public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
-            super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
-            Log.i(TAG, "onDescriptorWriteRequest "+descriptor.getUuid().toString());
-        }
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(PeripheralActivity.this, "Time Offset Updated", Toast.LENGTH_SHORT).show();
+                    }
+                });
 
-        @Override
-        public void onExecuteWrite(BluetoothDevice device, int requestId, boolean execute) {
-            super.onExecuteWrite(device, requestId, execute);
-            Log.i(TAG, "onExecuteWrite "+requestId);
+                notifyConnectedDevices();
+            }
         }
 
         @Override
@@ -248,25 +287,40 @@ public class PeripheralActivity extends Activity {
                 } else {
                     mConnectedDevicesAdapter.remove(device);
                 }
+
+                //Trigger our periodic notification once devices are connected
+                mHandler.removeCallbacks(mNotifyRunnable);
+                if (!mConnectedDevices.isEmpty()) {
+                    mHandler.post(mNotifyRunnable);
+                }
             }
         });
     }
 
     /* Storage and access to local characteristic data */
 
-    private Object mLock = new Object();
-
-    private String mStoredValue;
-
-    private String getStoredValue() {
-        synchronized (mLock) {
-            return mStoredValue;
+    private void notifyConnectedDevices() {
+        for (BluetoothDevice device : mConnectedDevices) {
+            BluetoothGattCharacteristic readCharacteristic = mGattServer.getService(DeviceProfile.SERVICE_UUID)
+                    .getCharacteristic(DeviceProfile.CHARACTERISTIC_READ_UUID);
+            readCharacteristic.setValue(getStoredValue());
+            mGattServer.notifyCharacteristicChanged(device, readCharacteristic, false);
         }
     }
 
-    private void setStoredValue(String newValue) {
+    private Object mLock = new Object();
+
+    private int mTimeOffset;
+
+    private byte[] getStoredValue() {
         synchronized (mLock) {
-            mStoredValue = newValue;
+            return DeviceProfile.getShiftedTimeValue(mTimeOffset);
+        }
+    }
+
+    private void setStoredValue(int newOffset) {
+        synchronized (mLock) {
+            mTimeOffset = newOffset;
         }
     }
 }

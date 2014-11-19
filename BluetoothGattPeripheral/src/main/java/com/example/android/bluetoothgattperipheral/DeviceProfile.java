@@ -3,6 +3,8 @@ package com.example.android.bluetoothgattperipheral;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothProfile;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.UUID;
 
 /**
@@ -43,5 +45,28 @@ public class DeviceProfile {
             default:
                 return "Unknown Status "+status;
         }
+    }
+
+    public static byte[] getShiftedTimeValue(int timeOffset) {
+        int value = Math.max(0,
+                (int)(System.currentTimeMillis()/1000) - timeOffset);
+        return bytesFromInt(value);
+    }
+
+    public static int unsignedIntFromBytes(byte[] raw) {
+        if (raw.length < 4) throw new IllegalArgumentException("Cannot convert raw data to int");
+
+        return ((raw[0] & 0xFF)
+                + ((raw[1] & 0xFF) << 8)
+                + ((raw[2] & 0xFF) << 16)
+                + ((raw[3] & 0xFF) << 24));
+    }
+
+    public static byte[] bytesFromInt(int value) {
+        //Convert result into raw bytes. GATT APIs expect LE order
+        return ByteBuffer.allocate(4)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .putInt(value)
+                .array();
     }
 }
