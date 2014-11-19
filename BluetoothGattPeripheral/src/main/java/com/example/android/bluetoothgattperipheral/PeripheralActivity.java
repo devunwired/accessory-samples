@@ -5,7 +5,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattServer;
 import android.bluetooth.BluetoothGattServerCallback;
 import android.bluetooth.BluetoothGattService;
@@ -25,8 +24,6 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 
 /**
@@ -113,22 +110,34 @@ public class PeripheralActivity extends Activity {
         shutdownServer();
     }
 
+    /*
+     * Create the GATT server instance, attaching all services and
+     * characteristics that should be exposed
+     */
     private void initServer() {
-        BluetoothGattService service = new BluetoothGattService(DeviceProfile.SERVICE_UUID, BluetoothGattService.SERVICE_TYPE_PRIMARY);
+        BluetoothGattService service =new BluetoothGattService(DeviceProfile.SERVICE_UUID,
+                BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
-        BluetoothGattCharacteristic readCharacteristic = new BluetoothGattCharacteristic(DeviceProfile.CHARACTERISTIC_READ_UUID,
+        BluetoothGattCharacteristic elapsedCharacteristic =
+                new BluetoothGattCharacteristic(DeviceProfile.CHARACTERISTIC_ELAPSED_UUID,
+                //Read-only characteristic, supports notifications
                 BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY,
                 BluetoothGattCharacteristic.PERMISSION_READ);
-        BluetoothGattCharacteristic writeCharacteristic = new BluetoothGattCharacteristic(DeviceProfile.CHARACTERISTIC_WRITE_UUID,
+        BluetoothGattCharacteristic offsetCharacteristic =
+                new BluetoothGattCharacteristic(DeviceProfile.CHARACTERISTIC_OFFSET_UUID,
+                //Read+write permissions
                 BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE,
                 BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
 
-        service.addCharacteristic(readCharacteristic);
-        service.addCharacteristic(writeCharacteristic);
+        service.addCharacteristic(elapsedCharacteristic);
+        service.addCharacteristic(offsetCharacteristic);
 
         mGattServer.addService(service);
     }
 
+    /*
+     * Terminate the server and any running callbacks
+     */
     private void shutdownServer() {
         mHandler.removeCallbacks(mNotifyRunnable);
 
@@ -145,6 +154,10 @@ public class PeripheralActivity extends Activity {
         }
     };
 
+    /*
+     * Callback handles all incoming requests from GATT clients.
+     * From connections to read/write requests.
+     */
     private BluetoothGattServerCallback mGattServerCallback = new BluetoothGattServerCallback() {
         @Override
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
@@ -152,6 +165,7 @@ public class PeripheralActivity extends Activity {
             Log.i(TAG, "onConnectionStateChange "
                     +DeviceProfile.getStatusDescription(status)+" "
                     +DeviceProfile.getStateDescription(newState));
+
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 postDeviceChange(device, true);
 
@@ -161,17 +175,14 @@ public class PeripheralActivity extends Activity {
         }
 
         @Override
-        public void onServiceAdded(int status, BluetoothGattService service) {
-            super.onServiceAdded(status, service);
-            Log.i(TAG, "onServiceAdded "+status+" "+service.getUuid().toString());
-        }
-
-        @Override
-        public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
+        public void onCharacteristicReadRequest(BluetoothDevice device,
+                                                int requestId,
+                                                int offset,
+                                                BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
             Log.i(TAG, "onCharacteristicReadRequest " + characteristic.getUuid().toString());
 
-            if (DeviceProfile.CHARACTERISTIC_READ_UUID.equals(characteristic.getUuid())) {
+            if (DeviceProfile.CHARACTERISTIC_ELAPSED_UUID.equals(characteristic.getUuid())) {
                 mGattServer.sendResponse(device,
                         requestId,
                         BluetoothGatt.GATT_SUCCESS,
@@ -179,7 +190,7 @@ public class PeripheralActivity extends Activity {
                         getStoredValue());
             }
 
-            if (DeviceProfile.CHARACTERISTIC_WRITE_UUID.equals(characteristic.getUuid())) {
+            if (DeviceProfile.CHARACTERISTIC_OFFSET_UUID.equals(characteristic.getUuid())) {
                 mGattServer.sendResponse(device,
                         requestId,
                         BluetoothGatt.GATT_SUCCESS,
@@ -187,7 +198,10 @@ public class PeripheralActivity extends Activity {
                         DeviceProfile.bytesFromInt(mTimeOffset));
             }
 
-            //Anything else, we don't know how to handle!
+            /*
+             * Unless the characteristic supports WRITE_NO_RESPONSE,
+             * always send a response back for any request.
+             */
             mGattServer.sendResponse(device,
                     requestId,
                     BluetoothGatt.GATT_FAILURE,
@@ -196,10 +210,17 @@ public class PeripheralActivity extends Activity {
         }
 
         @Override
-        public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
+        public void onCharacteristicWriteRequest(BluetoothDevice device,
+                                                 int requestId,
+                                                 BluetoothGattCharacteristic characteristic,
+                                                 boolean preparedWrite,
+                                                 boolean responseNeeded,
+                                                 int offset,
+                                                 byte[] value) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value);
             Log.i(TAG, "onCharacteristicWriteRequest "+characteristic.getUuid().toString());
-            if (DeviceProfile.CHARACTERISTIC_WRITE_UUID.equals(characteristic.getUuid())) {
+
+            if (DeviceProfile.CHARACTERISTIC_OFFSET_UUID.equals(characteristic.getUuid())) {
                 int newOffset = DeviceProfile.unsignedIntFromBytes(value);
                 setStoredValue(newOffset);
 
@@ -221,14 +242,11 @@ public class PeripheralActivity extends Activity {
                 notifyConnectedDevices();
             }
         }
-
-        @Override
-        public void onNotificationSent(BluetoothDevice device, int status) {
-            super.onNotificationSent(device, status);
-            Log.i(TAG, "onNotificationSent "+status);
-        }
     };
 
+    /*
+     * Initialize the advertiser
+     */
     private void startAdvertising() {
         if (mBluetoothLeAdvertiser == null) return;
 
@@ -247,12 +265,19 @@ public class PeripheralActivity extends Activity {
         mBluetoothLeAdvertiser.startAdvertising(settings, data, mAdvertiseCallback);
     }
 
+    /*
+     * Terminate the advertiser
+     */
     private void stopAdvertising() {
         if (mBluetoothLeAdvertiser == null) return;
 
         mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
     }
 
+    /*
+     * Callback handles events from the framework describing
+     * if we were successful in starting the advertisement requests.
+     */
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
@@ -302,7 +327,7 @@ public class PeripheralActivity extends Activity {
     private void notifyConnectedDevices() {
         for (BluetoothDevice device : mConnectedDevices) {
             BluetoothGattCharacteristic readCharacteristic = mGattServer.getService(DeviceProfile.SERVICE_UUID)
-                    .getCharacteristic(DeviceProfile.CHARACTERISTIC_READ_UUID);
+                    .getCharacteristic(DeviceProfile.CHARACTERISTIC_ELAPSED_UUID);
             readCharacteristic.setValue(getStoredValue());
             mGattServer.notifyCharacteristicChanged(device, readCharacteristic, false);
         }

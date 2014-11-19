@@ -4,13 +4,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/latest_value"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:textAppearance="?android:attr/textAppearanceMedium"/>
-
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -22,4 +15,24 @@
         android:layout_height="wrap_content"
         android:onClick="onGetOffsetClick"
         android:text="Get Current Time Offset"/>
+
+    <TextView
+        android:id="@+id/latest_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:textAppearance="?android:attr/textAppearanceLarge"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Seconds Passed Since:"/>
+    <TextView
+        android:id="@+id/offset_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:textAppearance="?android:attr/textAppearanceMedium"/>
+
 </LinearLayout>

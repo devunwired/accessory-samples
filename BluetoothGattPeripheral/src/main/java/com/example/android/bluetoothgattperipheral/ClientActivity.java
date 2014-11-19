@@ -18,7 +18,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.util.SparseArray;
@@ -29,8 +28,10 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -52,6 +53,7 @@ public class ClientActivity extends Activity {
 
     /* Client UI elements */
     private TextView mLatestValue;
+    private TextView mCurrentOffset;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +61,8 @@ public class ClientActivity extends Activity {
         setContentView(R.layout.activity_client);
 
         mLatestValue = (TextView) findViewById(R.id.latest_value);
+        mCurrentOffset = (TextView) findViewById(R.id.offset_date);
+        updateDateText(0);
 
         /*
          * Bluetooth in Android 4.3+ is accessed via the BluetoothManager, rather than
@@ -95,8 +99,6 @@ public class ClientActivity extends Activity {
             finish();
             return;
         }
-
-        //TODO: Init UI?
     }
 
     @Override
@@ -160,7 +162,7 @@ public class ClientActivity extends Activity {
 
                     BluetoothGattCharacteristic characteristic = mConnectedGatt
                             .getService(DeviceProfile.SERVICE_UUID)
-                            .getCharacteristic(DeviceProfile.CHARACTERISTIC_WRITE_UUID);
+                            .getCharacteristic(DeviceProfile.CHARACTERISTIC_OFFSET_UUID);
                     byte[] value = DeviceProfile.bytesFromInt((int)(now.getTimeInMillis()/1000));
                     Log.d(TAG, "Writing value of size "+value.length);
                     characteristic.setValue(value);
@@ -179,19 +181,30 @@ public class ClientActivity extends Activity {
         if (mConnectedGatt != null) {
             BluetoothGattCharacteristic characteristic = mConnectedGatt
                     .getService(DeviceProfile.SERVICE_UUID)
-                    .getCharacteristic(DeviceProfile.CHARACTERISTIC_WRITE_UUID);
+                    .getCharacteristic(DeviceProfile.CHARACTERISTIC_OFFSET_UUID);
 
             mConnectedGatt.readCharacteristic(characteristic);
+            mCurrentOffset.setText("---");
         }
     }
 
+    private void updateDateText(long offset) {
+        Date date = new Date(offset);
+        String dateString = DateFormat.getDateTimeInstance().format(date);
+        mCurrentOffset.setText(dateString);
+    }
+
+    /*
+     * Begin a scan for new servers that advertise our
+     * matching service.
+     */
     private void startScan() {
         //Scan for devices advertising our custom service
-        ScanFilter beaconFilter = new ScanFilter.Builder()
+        ScanFilter scanFilter = new ScanFilter.Builder()
                 .setServiceUuid(new ParcelUuid(DeviceProfile.SERVICE_UUID))
                 .build();
         ArrayList<ScanFilter> filters = new ArrayList<ScanFilter>();
-        filters.add(beaconFilter);
+        filters.add(scanFilter);
 
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
@@ -199,20 +212,30 @@ public class ClientActivity extends Activity {
         mBluetoothAdapter.getBluetoothLeScanner().startScan(filters, settings, mScanCallback);
     }
 
+    /*
+     * Terminate any active scans
+     */
     private void stopScan() {
         mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
     }
 
+    /*
+     * Callback handles results from new devices that appear
+     * during a scan. Batch results appear when scan delay
+     * filters are enabled.
+     */
     private ScanCallback mScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             Log.d(TAG, "onScanResult");
+
             processResult(result);
         }
 
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
             Log.d(TAG, "onBatchScanResults: "+results.size()+" results");
+
             for (ScanResult result : results) {
                 processResult(result);
             }
@@ -235,6 +258,10 @@ public class ClientActivity extends Activity {
         }
     };
 
+    /*
+     * Callback handles GATT client events, such as results from
+     * reading or writing a characteristic value on the server.
+     */
     private BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -252,22 +279,25 @@ public class ClientActivity extends Activity {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
             Log.d(TAG, "onServicesDiscovered:");
+
             for (BluetoothGattService service : gatt.getServices()) {
                 Log.d(TAG, "Service: "+service.getUuid());
 
                 if (DeviceProfile.SERVICE_UUID.equals(service.getUuid())) {
                     //Read the current characteristic's value
-                    gatt.readCharacteristic(service.getCharacteristic(DeviceProfile.CHARACTERISTIC_READ_UUID));
+                    gatt.readCharacteristic(service.getCharacteristic(DeviceProfile.CHARACTERISTIC_ELAPSED_UUID));
                 }
             }
         }
 
         @Override
-        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+        public void onCharacteristicRead(BluetoothGatt gatt,
+                                         BluetoothGattCharacteristic characteristic,
+                                         int status) {
             super.onCharacteristicRead(gatt, characteristic, status);
             final int charValue = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
 
-            if (DeviceProfile.CHARACTERISTIC_READ_UUID.equals(characteristic.getUuid())) {
+            if (DeviceProfile.CHARACTERISTIC_ELAPSED_UUID.equals(characteristic.getUuid())) {
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -279,18 +309,20 @@ public class ClientActivity extends Activity {
                 gatt.setCharacteristicNotification(characteristic, true);
             }
 
-            if (DeviceProfile.CHARACTERISTIC_WRITE_UUID.equals(characteristic.getUuid())) {
+            if (DeviceProfile.CHARACTERISTIC_OFFSET_UUID.equals(characteristic.getUuid())) {
+                Log.d(TAG, "Current time offset: "+charValue);
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(ClientActivity.this, "Current Offset is "+charValue, Toast.LENGTH_SHORT).show();
+                        updateDateText((long)charValue * 1000);
                     }
                 });
             }
         }
 
         @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+        public void onCharacteristicChanged(BluetoothGatt gatt,
+                                            BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
             Log.i(TAG, "Notification of time characteristic changed on server.");
             final int charValue = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
