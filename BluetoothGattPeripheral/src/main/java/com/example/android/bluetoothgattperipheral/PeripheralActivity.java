@@ -49,7 +49,8 @@ public class PeripheralActivity extends Activity {
         setContentView(list);
 
         mConnectedDevices = new ArrayList<BluetoothDevice>();
-        mConnectedDevicesAdapter = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_list_item_1, mConnectedDevices);
+        mConnectedDevicesAdapter = new ArrayAdapter<BluetoothDevice>(this,
+                android.R.layout.simple_list_item_1, mConnectedDevices);
         list.setAdapter(mConnectedDevicesAdapter);
 
         /*
