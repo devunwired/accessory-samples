@@ -123,7 +123,7 @@ public class BeaconLollipopActivity extends Activity {
         filters.add(beaconFilter);
 
         ScanSettings settings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build();
 
         mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
